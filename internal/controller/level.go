@@ -11,6 +11,10 @@ import (
 	"net/http"
 )
 
+const (
+	MaxLevelSize = 100
+)
+
 type LevelController struct {
 	db     *gorm.DB
 	logger *zap.Logger
@@ -102,23 +106,51 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 func validateLevel(level *model.Level) error {
 	cells := level.Cells
 
+	// validate map size, don't want to iterate over potentially massive array
+	if err := validateMapSize(cells); err != nil {
+		return err
+	}
+
+	// validate rectangular map
+	if err := validateMapRectangular(cells); err != nil {
+		return err
+	}
+
+	// validate cells after ensuring map is rectangular
+	if err := validateCells(cells); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateMapSize(cells model.Cells) error {
 	rowCount := len(cells)
 	if rowCount == 0 {
 		return apperr.ErrEmptyMap
 	}
 
-	// validate map size, don't want to iterate over potentially massive array
-
 	if rowCount > 100 {
 		return apperr.ErrMapTooLarge
 	}
 
-	// validate rectangular map
 	expectedColCount := len(cells[0])
 
 	if expectedColCount > 100 {
 		return apperr.ErrMapTooLarge
 	}
+
+	return nil
+}
+
+func validateMapRectangular(cells model.Cells) error {
+
+	rowCount := len(cells)
+	if rowCount == 0 {
+		return apperr.ErrEmptyMap
+	}
+
+	expectedColCount := len(cells[0])
 
 	for _, row := range cells[1:] {
 		colCount := len(row)
@@ -128,7 +160,10 @@ func validateLevel(level *model.Level) error {
 		}
 	}
 
-	// validate cells after ensuring map is rectangular
+	return nil
+}
+
+func validateCells(cells model.Cells) error {
 	for i, row := range cells {
 		for j, cell := range row {
 			if !cell.IsValid() {
