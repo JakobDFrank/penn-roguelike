@@ -30,7 +30,7 @@ sudo systemctl start docker
 
 <br>
 
-## ## Getting Started
+## Getting Started
 
 1. Clone the repository.
 
@@ -44,7 +44,7 @@ In another terminal, run the following commands to manage the program.
 
 ### Submitting a Level
 
-```json
+```shell
 curl -X POST http://localhost:8080/level/submit \
 -H "Content-Type: application/json" \
 -d '[[0,0,0,0,2],[0,4,0,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]'
@@ -63,7 +63,7 @@ The `direction` parameter is defined as follows:
 - `2` for up
 - `3` for down
 
-```json
+```shell
 curl -X POST http://localhost:8080/player/move \
      -H "Content-Type: application/json" \
      -d '{"id":1,"direction":0}'
