@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm/clause"
 	"io"
 	"net/http"
+	"time"
 )
 
 // PlayerController handles HTTP requests for player management.
@@ -115,6 +116,9 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*model.Level, err
 
 	tx := pc.db.Begin()
 
+	start := time.Now()
+	pc.logger.Debug("start_transaction", zap.Time("start_time", start))
+
 	var playr model.Player
 
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("level_id = ?", req.ID).First(&playr).Error; err != nil {
@@ -146,6 +150,9 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*model.Level, err
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
+
+	end := time.Now()
+	pc.logger.Debug("end_transaction", zap.Time("end_time", end), zap.Duration("elapsed", end.Sub(start)))
 
 	lvl.Map[oldRowIdx][oldColIdx] = model.CellOpen
 	lvl.Map[playr.RowIdx][playr.ColIdx] = model.CellPlayer
