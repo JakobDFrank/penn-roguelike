@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/model/level"
-	"github.com/JakobDFrank/penn-roguelike/internal/model/player"
+	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -95,9 +94,9 @@ func (pc *PlayerController) MovePlayer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*level.Level, error) {
+func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*model.Level, error) {
 
-	dir, err := player.NewDirection(req.Direction)
+	dir, err := model.NewDirection(req.Direction)
 
 	if err != nil {
 		return nil, err
@@ -105,7 +104,7 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*level.Level, err
 
 	pc.logger.Debug("move_player", zap.String("dir", dir.String()))
 
-	var lvl level.Level
+	var lvl model.Level
 
 	if err := pc.db.First(&lvl, req.ID).Error; err != nil {
 		return nil, err
@@ -113,7 +112,7 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*level.Level, err
 
 	tx := pc.db.Begin()
 
-	var playr player.Player
+	var playr model.Player
 
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("level_id = ?", req.ID).First(&playr).Error; err != nil {
 		tx.Rollback()
@@ -123,8 +122,8 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*level.Level, err
 	oldRowIdx := playr.RowIdx
 	oldColIdx := playr.ColIdx
 
-	lvl.Cells[lvl.RowStart][lvl.ColStart] = level.Open
-	lvl.Cells[oldRowIdx][oldColIdx] = level.Player
+	lvl.Cells[lvl.RowStart][lvl.ColStart] = model.CellOpen
+	lvl.Cells[oldRowIdx][oldColIdx] = model.CellPlayer
 	fmt.Printf("before: \n%s\n", lvl.Cells.String())
 
 	moved, err := pc.tryMove(&lvl, &playr, dir)
@@ -145,32 +144,32 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*level.Level, err
 		return nil, err
 	}
 
-	lvl.Cells[oldRowIdx][oldColIdx] = level.Open
-	lvl.Cells[playr.RowIdx][playr.ColIdx] = level.Player
+	lvl.Cells[oldRowIdx][oldColIdx] = model.CellOpen
+	lvl.Cells[playr.RowIdx][playr.ColIdx] = model.CellPlayer
 
 	fmt.Printf("after: \n%s\n", lvl.Cells.String())
 
 	return &lvl, nil
 }
 
-func (pc *PlayerController) tryMove(lvl *level.Level, p *player.Player, dir player.Direction) (bool, error) {
+func (pc *PlayerController) tryMove(lvl *model.Level, p *model.Player, dir model.Direction) (bool, error) {
 	switch dir {
-	case player.Left:
+	case model.Left:
 		if p.ColIdx > 0 {
 			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx, p.ColIdx-1)
 			return moved, nil
 		}
-	case player.Right:
+	case model.Right:
 		if p.ColIdx < len(lvl.Cells[0])-1 {
 			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx, p.ColIdx+1)
 			return moved, nil
 		}
-	case player.Up:
+	case model.Up:
 		if p.RowIdx > 0 {
 			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx-1, p.ColIdx)
 			return moved, nil
 		}
-	case player.Down:
+	case model.Down:
 		if p.RowIdx < len(lvl.Cells)-1 {
 			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx+1, p.ColIdx)
 			return moved, nil
@@ -183,18 +182,18 @@ func (pc *PlayerController) tryMove(lvl *level.Level, p *player.Player, dir play
 	return false, nil
 }
 
-func (pc *PlayerController) handlePlayerMoveAttempt(lvl *level.Level, p *player.Player, row, col int) bool {
+func (pc *PlayerController) handlePlayerMoveAttempt(lvl *model.Level, p *model.Player, row, col int) bool {
 	switch lvl.Cells[row][col] {
-	case level.Wall:
+	case model.CellWall:
 		pc.logger.Info("player_blocked_by_wall")
 		return false
-	case level.Pit:
+	case model.CellPit:
 		p.Hitpoints -= 1
 		pc.logger.Info("player_fell_into_pit", zap.Int("hp", p.Hitpoints))
-	case level.Arrow:
+	case model.CellArrow:
 		p.Hitpoints -= 2
 		pc.logger.Info("player_hit_by_arrows", zap.Int("hp", p.Hitpoints))
-	case level.Open, level.Player:
+	case model.CellOpen, model.CellPlayer:
 		pc.logger.Info("player_moved", zap.Int("row", row), zap.Int("col", col))
 	}
 

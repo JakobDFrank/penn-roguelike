@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/model/level"
-	"github.com/JakobDFrank/penn-roguelike/internal/model/player"
+	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"io"
@@ -56,7 +55,7 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	cells := make([][]level.Cell, 0)
+	cells := make([][]model.Cell, 0)
 	if err := json.Unmarshal(body, &cells); err != nil {
 		handleError(lc.logger, w, err)
 		return
@@ -64,7 +63,7 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 
 	lc.logger.Debug("unmarshalled_level", zap.Any("cells", cells))
 
-	lvl, err := level.NewLevel(cells)
+	lvl, err := model.NewLevel(cells)
 
 	if err != nil {
 		handleError(lc.logger, w, err)
@@ -95,7 +94,7 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (lc *LevelController) createMap(lvl *level.Level) error {
+func (lc *LevelController) createMap(lvl *model.Level) error {
 	tx := lc.db.Begin()
 
 	lvlRes := tx.Create(lvl)
@@ -105,7 +104,7 @@ func (lc *LevelController) createMap(lvl *level.Level) error {
 		return lvlRes.Error
 	}
 
-	playr := player.NewPlayer(lvl.ID, lvl.RowStart, lvl.ColStart)
+	playr := model.NewPlayer(lvl.ID, lvl.RowStart, lvl.ColStart)
 
 	playerRes := tx.Create(playr)
 

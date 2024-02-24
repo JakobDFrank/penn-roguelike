@@ -4,8 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/controller"
-	"github.com/JakobDFrank/penn-roguelike/internal/model/level"
-	"github.com/JakobDFrank/penn-roguelike/internal/model/player"
+	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
@@ -90,7 +89,7 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if err := gormDb.AutoMigrate(&level.Level{}, &player.Player{}); err != nil {
+	if err := gormDb.AutoMigrate(&model.Level{}, &model.Player{}); err != nil {
 		return nil, err
 	}
 

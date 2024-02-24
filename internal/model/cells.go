@@ -1,4 +1,4 @@
-package level
+package model
 
 import (
 	"database/sql/driver"

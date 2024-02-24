@@ -1,4 +1,4 @@
-package level
+package model
 
 import (
 	"fmt"
@@ -111,7 +111,7 @@ func validateCells(cells Cells) (*cellPos, error) {
 				return nil, &apperr.InvalidCellTypeError{Message: fmt.Sprintf("cell value: %d | row: %d | col: %d", cell, rowIdx, colIdx)}
 			}
 
-			if cell == Player {
+			if cell == CellPlayer {
 				playerCount += 1
 
 				pos.RowIdx = rowIdx

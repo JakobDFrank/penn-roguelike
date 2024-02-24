@@ -1,4 +1,4 @@
-package level
+package model
 
 import (
 	"fmt"
@@ -8,11 +8,11 @@ import (
 type Cell int
 
 const (
-	Open Cell = iota
-	Wall
-	Pit
-	Arrow
-	Player
+	CellOpen Cell = iota
+	CellWall
+	CellPit
+	CellArrow
+	CellPlayer
 )
 
 func NewCell(cell int) (Cell, error) {
@@ -27,7 +27,7 @@ func NewCell(cell int) (Cell, error) {
 
 func (c *Cell) IsValid() bool {
 	switch *c {
-	case Open, Wall, Pit, Arrow, Player:
+	case CellOpen, CellWall, CellPit, CellArrow, CellPlayer:
 		return true
 	default:
 		return false
