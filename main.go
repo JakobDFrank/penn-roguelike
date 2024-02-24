@@ -42,7 +42,7 @@ func main() {
 		logger.Fatal("setup_server", zap.Error(err))
 	}
 
-	logger.Debug("listening")
+	logger.Debug("Listening...")
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		logger.Fatal("listen_and_serve", zap.Error(err))
@@ -96,8 +96,9 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 	return gormDb, nil
 }
 
+// JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
+// however, it will increase complexity. trade-offs.
 func setupHandlers(logger *zap.Logger, db *gorm.DB) error {
-
 	lc, err := controller.NewLevelController(logger, db)
 
 	if err != nil {

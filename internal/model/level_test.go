@@ -5,13 +5,13 @@ import (
 )
 
 func TestValidateMapSize(t *testing.T) {
-	emptyMap := make(Cells, 0)
+	emptyMap := make(GameMap, 0)
 
 	if err := validateMapSize(emptyMap); err == nil {
 		t.Error("validateMapSize on an empty map did not return an error")
 	}
 
-	largeMap := make(Cells, MaxLevelSize+1)
+	largeMap := make(GameMap, MaxLevelSize+1)
 
 	if err := validateMapSize(largeMap); err == nil {
 		t.Error("validateMapSize on a map too large did not return an error")
@@ -19,7 +19,7 @@ func TestValidateMapSize(t *testing.T) {
 }
 
 func TestValidateMapRectangular(t *testing.T) {
-	jaggedMap := make(Cells, 10)
+	jaggedMap := make(GameMap, 10)
 
 	for i := range jaggedMap {
 		jaggedMap[i] = make([]Cell, i+1)
@@ -29,7 +29,7 @@ func TestValidateMapRectangular(t *testing.T) {
 		t.Error("validateMapRectangular on a jagged map did not return an error")
 	}
 
-	squareMap := make(Cells, 10)
+	squareMap := make(GameMap, 10)
 
 	for i := range squareMap {
 		squareMap[i] = make([]Cell, len(squareMap))
@@ -39,7 +39,7 @@ func TestValidateMapRectangular(t *testing.T) {
 		t.Errorf("validateMapRectangular on a square map returned an error: %v", err)
 	}
 
-	rectMap := make(Cells, 10)
+	rectMap := make(GameMap, 10)
 
 	for i := range rectMap {
 		rectMap[i] = make([]Cell, len(rectMap)/2)
@@ -53,7 +53,7 @@ func TestValidateMapRectangular(t *testing.T) {
 func TestValidateCells(t *testing.T) {
 	max := int(CellPlayer)
 
-	lvl := make(Cells, 10)
+	lvl := make(GameMap, 10)
 
 	current := 0
 

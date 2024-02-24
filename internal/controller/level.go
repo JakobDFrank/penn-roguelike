@@ -11,6 +11,7 @@ import (
 	"net/http"
 )
 
+// LevelController handles HTTP requests for level management.
 type LevelController struct {
 	db     *gorm.DB
 	logger *zap.Logger
@@ -39,6 +40,8 @@ func NewLevelController(logger *zap.Logger, db *gorm.DB) (*LevelController, erro
 	return lc, nil
 }
 
+// SubmitLevel handles HTTP requests to insert levels that can be played.
+// It returns the unique ID of the level or an error.
 func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
@@ -104,7 +107,7 @@ func (lc *LevelController) createMap(lvl *model.Level) error {
 		return lvlRes.Error
 	}
 
-	playr := model.NewPlayer(lvl.ID, lvl.RowStart, lvl.ColStart)
+	playr := model.NewPlayer(lvl.ID, lvl.RowStartIdx, lvl.ColStartIdx)
 
 	playerRes := tx.Create(playr)
 
@@ -119,7 +122,7 @@ func (lc *LevelController) createMap(lvl *model.Level) error {
 
 	lc.logger.Debug("submit_level", zap.Int64("lvl_rows_affected", lvlRes.RowsAffected), zap.Int64("player_rows_affected", playerRes.RowsAffected))
 
-	fmt.Println(lvl.Cells.String())
+	fmt.Println(lvl.Map.String())
 
 	return nil
 }

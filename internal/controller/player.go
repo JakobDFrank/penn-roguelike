@@ -12,6 +12,7 @@ import (
 	"net/http"
 )
 
+// PlayerController handles HTTP requests for player management.
 type PlayerController struct {
 	db     *gorm.DB
 	logger *zap.Logger
@@ -40,6 +41,8 @@ func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerController, er
 	return pc, nil
 }
 
+// MovePlayer handles HTTP requests to move a player within the game.
+// It returns the new game state or an error.
 func (pc *PlayerController) MovePlayer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -69,7 +72,7 @@ func (pc *PlayerController) MovePlayer(w http.ResponseWriter, r *http.Request) {
 		handleError(pc.logger, w, err)
 	}
 
-	cellJson, err := json.Marshal(lvl.Cells)
+	cellJson, err := json.Marshal(lvl.Map)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -122,9 +125,9 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*model.Level, err
 	oldRowIdx := playr.RowIdx
 	oldColIdx := playr.ColIdx
 
-	lvl.Cells[lvl.RowStart][lvl.ColStart] = model.CellOpen
-	lvl.Cells[oldRowIdx][oldColIdx] = model.CellPlayer
-	fmt.Printf("before: \n%s\n", lvl.Cells.String())
+	lvl.Map[lvl.RowStartIdx][lvl.ColStartIdx] = model.CellOpen
+	lvl.Map[oldRowIdx][oldColIdx] = model.CellPlayer
+	fmt.Printf("before: \n%s\n", lvl.Map.String())
 
 	moved, err := pc.tryMove(&lvl, &playr, dir)
 
@@ -144,10 +147,10 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*model.Level, err
 		return nil, err
 	}
 
-	lvl.Cells[oldRowIdx][oldColIdx] = model.CellOpen
-	lvl.Cells[playr.RowIdx][playr.ColIdx] = model.CellPlayer
+	lvl.Map[oldRowIdx][oldColIdx] = model.CellOpen
+	lvl.Map[playr.RowIdx][playr.ColIdx] = model.CellPlayer
 
-	fmt.Printf("after: \n%s\n", lvl.Cells.String())
+	fmt.Printf("after: \n%s\n", lvl.Map.String())
 
 	return &lvl, nil
 }
@@ -160,7 +163,7 @@ func (pc *PlayerController) tryMove(lvl *model.Level, p *model.Player, dir model
 			return moved, nil
 		}
 	case model.Right:
-		if p.ColIdx < len(lvl.Cells[0])-1 {
+		if p.ColIdx < len(lvl.Map[0])-1 {
 			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx, p.ColIdx+1)
 			return moved, nil
 		}
@@ -170,7 +173,7 @@ func (pc *PlayerController) tryMove(lvl *model.Level, p *model.Player, dir model
 			return moved, nil
 		}
 	case model.Down:
-		if p.RowIdx < len(lvl.Cells)-1 {
+		if p.RowIdx < len(lvl.Map)-1 {
 			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx+1, p.ColIdx)
 			return moved, nil
 		}
@@ -183,7 +186,7 @@ func (pc *PlayerController) tryMove(lvl *model.Level, p *model.Player, dir model
 }
 
 func (pc *PlayerController) handlePlayerMoveAttempt(lvl *model.Level, p *model.Player, row, col int) bool {
-	switch lvl.Cells[row][col] {
+	switch lvl.Map[row][col] {
 	case model.CellWall:
 		pc.logger.Info("player_blocked_by_wall")
 		return false
@@ -201,8 +204,8 @@ func (pc *PlayerController) handlePlayerMoveAttempt(lvl *model.Level, p *model.P
 		p.RowIdx = row
 		p.ColIdx = col
 	} else {
-		p.RowIdx = lvl.RowStart
-		p.ColIdx = lvl.ColStart
+		p.RowIdx = lvl.RowStartIdx
+		p.ColIdx = lvl.ColStartIdx
 		p.ResetHitpoints()
 
 		pc.logger.Info("player_died", zap.Int("row", p.RowIdx), zap.Int("col", p.ColIdx))
