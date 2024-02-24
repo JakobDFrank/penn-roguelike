@@ -8,21 +8,18 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"io"
 	"net/http"
 	"time"
 )
+
+//--------------------------------------------------------------------------------
+// PlayerController
+//--------------------------------------------------------------------------------
 
 // PlayerController handles HTTP requests for player management.
 type PlayerController struct {
 	db     *gorm.DB
 	logger *zap.Logger
-}
-
-type MovePlayerResponse struct {
-	Id     uint   `json:"id"`
-	Level  string `json:"level"`
-	Status int    `json:"status"`
 }
 
 func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerController, error) {
@@ -47,20 +44,9 @@ func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerController, er
 func (pc *PlayerController) MovePlayer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		handleError(pc.logger, w, err)
-		return
-	}
-
-	defer func() {
-		if err := r.Body.Close(); err != nil {
-			pc.logger.Error("close_body", zap.Error(err))
-		}
-	}()
-
 	moveRequest := MovePlayerRequest{}
-	if err := json.Unmarshal(body, &moveRequest); err != nil {
+
+	if err := deserializePostRequest(w, r, &moveRequest); err != nil {
 		handleError(pc.logger, w, err)
 		return
 	}
@@ -221,7 +207,21 @@ func (pc *PlayerController) handlePlayerMoveAttempt(lvl *model.Level, p *model.P
 	return true
 }
 
+//--------------------------------------------------------------------------------
+// MovePlayerRequest
+//--------------------------------------------------------------------------------
+
 type MovePlayerRequest struct {
 	ID        uint `json:"id"`
 	Direction int  `json:"direction"`
+}
+
+//--------------------------------------------------------------------------------
+// MovePlayerResponse
+//--------------------------------------------------------------------------------
+
+type MovePlayerResponse struct {
+	Id     uint   `json:"id"`
+	Level  string `json:"level"`
+	Status int    `json:"status"`
 }
