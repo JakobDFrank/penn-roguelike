@@ -17,10 +17,13 @@ type Player struct {
 	LevelID uint
 }
 
-func NewPlayer(levelID uint) *Player {
+func NewPlayer(levelID uint, startRowIdx, startColIdx int) *Player {
 	return &Player{
 		Hitpoints: _startingHitpoints,
-		LevelID:   levelID,
+		RowIdx:    startRowIdx,
+		ColIdx:    startColIdx,
+
+		LevelID: levelID,
 	}
 }
 

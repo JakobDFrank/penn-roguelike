@@ -105,7 +105,7 @@ func (lc *LevelController) createMap(lvl *level.Level) error {
 		return lvlRes.Error
 	}
 
-	playr := player.NewPlayer(lvl.ID)
+	playr := player.NewPlayer(lvl.ID, lvl.RowStart, lvl.ColStart)
 
 	playerRes := tx.Create(playr)
 

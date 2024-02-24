@@ -28,6 +28,47 @@ Start Docker:
 sudo systemctl start docker
 ```
 
+<br>
+
+## ## Getting Started
+
+1. Clone the repository.
+
+2. Open a terminal and navigate to the root directory.
+
+3. Run `docker-compose up --build` to start the application.
+
+## How to Use
+
+In another terminal, run the following commands to manage the program.
+
+### Submitting a Level
+
+```json
+curl -X POST http://localhost:8080/level/submit \
+-H "Content-Type: application/json" \
+-d '[[0,0,0,0,2],[0,4,0,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]'
+```
+
+### Moving the Player
+
+Successfully submitting a level returns a unique map `id`. 
+
+It can move a player on a specific map in conjunction with `direction`.
+
+The `direction` parameter is defined as follows:
+
+- `0` for left
+- `1` for right
+- `2` for up
+- `3` for down
+
+```json
+curl -X POST http://localhost:8080/player/move \
+     -H "Content-Type: application/json" \
+     -d '{"id":1,"direction":0}'
+```
+
 ## Directory Structure
 
 https://github.com/golang-standards/project-layout
