@@ -4,9 +4,13 @@
 
 ## Prerequisites
 
- <br>
+- Docker
 
-### Fedora
+- Docker Compose v3
+
+<br>
+
+### Installing Docker and Docker Compose on Fedora
 
 Install Docker:
 
@@ -28,9 +32,9 @@ Start Docker:
 sudo systemctl start docker
 ```
 
-<br>
 
-## Getting Started
+
+## How to Use
 
 1. Clone the repository.
 
@@ -38,9 +42,9 @@ sudo systemctl start docker
 
 3. Run `docker-compose up --build` to start the application.
 
-## How to Use
+4. In another terminal, run the following commands to manage the program.
 
-In another terminal, run the following commands to manage the program.
+
 
 ### Submitting a Level
 
