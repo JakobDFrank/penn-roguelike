@@ -9,8 +9,8 @@
 - Docker Compose v3
 
 <br>
-
-### Installing Docker and Docker Compose on Fedora
+<details>
+<summary>Installing Docker and Docker Compose on Fedora </summary>
 
 Install Docker:
 
@@ -32,7 +32,7 @@ Start Docker:
 sudo systemctl start docker
 ```
 
-
+</details>
 
 ## How to Use
 
