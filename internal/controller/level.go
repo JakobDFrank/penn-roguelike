@@ -2,17 +2,13 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/model/level"
+	"github.com/JakobDFrank/penn-roguelike/internal/model/player"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"io"
 	"net/http"
-)
-
-const (
-	MaxLevelSize = 100
 )
 
 type LevelController struct {
@@ -59,7 +55,7 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	cells := make([][]model.Cell, 0)
+	cells := make([][]level.Cell, 0)
 	if err := json.Unmarshal(body, &cells); err != nil {
 		handleError(lc.logger, w, err)
 		return
@@ -67,26 +63,21 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 
 	lc.logger.Debug("unmarshalled_level", zap.Any("cells", cells))
 
-	level := &model.Level{Cells: cells}
+	lvl, err := level.NewLevel(cells)
 
-	if err := validateLevel(level); err != nil {
+	if err != nil {
 		handleError(lc.logger, w, err)
 		return
 	}
 
-	res := lc.db.FirstOrCreate(level, &model.Level{Cells: cells})
-
-	if res.Error != nil {
+	if err := lc.createMap(lvl); err != nil {
 		handleError(lc.logger, w, err)
 		return
 	}
 
-	lc.logger.Debug("submit_level", zap.Int64("rows_affected", res.RowsAffected))
-
-	msg := fmt.Sprintf("rows_affected: %d", res.RowsAffected)
 	resp := InsertLevelResponse{
-		Id:      level.ID,
-		Message: msg,
+		Id:      lvl.ID,
+		Message: "",
 		Status:  http.StatusOK,
 	}
 
@@ -103,74 +94,30 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func validateLevel(level *model.Level) error {
-	cells := level.Cells
+func (lc *LevelController) createMap(lvl *level.Level) error {
+	tx := lc.db.Begin()
 
-	// validate map size, don't want to iterate over potentially massive array
-	if err := validateMapSize(cells); err != nil {
+	lvlRes := tx.Create(lvl)
+
+	if lvlRes.Error != nil {
+		tx.Rollback()
+		return lvlRes.Error
+	}
+
+	playr := player.NewPlayer(lvl.ID)
+
+	playerRes := tx.Create(playr)
+
+	if playerRes.Error != nil {
+		tx.Rollback()
+		return playerRes.Error
+	}
+
+	if err := tx.Commit().Error; err != nil {
 		return err
 	}
 
-	// validate rectangular map
-	if err := validateMapRectangular(cells); err != nil {
-		return err
-	}
-
-	// validate cells after ensuring map is rectangular
-	if err := validateCells(cells); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validateMapSize(cells model.Cells) error {
-	rowCount := len(cells)
-	if rowCount == 0 {
-		return apperr.ErrEmptyMap
-	}
-
-	if rowCount > 100 {
-		return apperr.ErrMapTooLarge
-	}
-
-	expectedColCount := len(cells[0])
-
-	if expectedColCount > 100 {
-		return apperr.ErrMapTooLarge
-	}
-
-	return nil
-}
-
-func validateMapRectangular(cells model.Cells) error {
-
-	rowCount := len(cells)
-	if rowCount == 0 {
-		return apperr.ErrEmptyMap
-	}
-
-	expectedColCount := len(cells[0])
-
-	for _, row := range cells[1:] {
-		colCount := len(row)
-
-		if colCount != expectedColCount {
-			return apperr.ErrMapNotRectangular
-		}
-	}
-
-	return nil
-}
-
-func validateCells(cells model.Cells) error {
-	for i, row := range cells {
-		for j, cell := range row {
-			if !cell.IsValid() {
-				return &apperr.InvalidCellTypeError{Message: fmt.Sprintf("cell value: %d | row: %d | col: %d", cell, i, j)}
-			}
-		}
-	}
+	lc.logger.Debug("submit_level", zap.Int64("lvl_rows_affected", lvlRes.RowsAffected), zap.Int64("player_rows_affected", playerRes.RowsAffected))
 
 	return nil
 }
