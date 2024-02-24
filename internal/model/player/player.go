@@ -11,6 +11,8 @@ const (
 type Player struct {
 	gorm.Model
 	Hitpoints int
+	RowIdx    int
+	ColIdx    int
 
 	LevelID uint
 }
@@ -20,4 +22,8 @@ func NewPlayer(levelID uint) *Player {
 		Hitpoints: _startingHitpoints,
 		LevelID:   levelID,
 	}
+}
+
+func (p *Player) ResetHitpoints() {
+	p.Hitpoints = _startingHitpoints
 }

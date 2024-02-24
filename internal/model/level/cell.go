@@ -12,7 +12,7 @@ const (
 	Wall
 	Pit
 	Arrow
-	StartPosition
+	Player
 )
 
 func NewCell(cell int) (Cell, error) {
@@ -27,7 +27,7 @@ func NewCell(cell int) (Cell, error) {
 
 func (c *Cell) IsValid() bool {
 	switch *c {
-	case Open, Wall, Pit, Arrow, StartPosition:
+	case Open, Wall, Pit, Arrow, Player:
 		return true
 	default:
 		return false

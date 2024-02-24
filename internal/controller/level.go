@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/model/level"
 	"github.com/JakobDFrank/penn-roguelike/internal/model/player"
@@ -118,6 +119,8 @@ func (lc *LevelController) createMap(lvl *level.Level) error {
 	}
 
 	lc.logger.Debug("submit_level", zap.Int64("lvl_rows_affected", lvlRes.RowsAffected), zap.Int64("player_rows_affected", playerRes.RowsAffected))
+
+	fmt.Println(lvl.Cells.String())
 
 	return nil
 }

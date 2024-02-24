@@ -51,7 +51,7 @@ func TestValidateMapRectangular(t *testing.T) {
 }
 
 func TestValidateCells(t *testing.T) {
-	max := int(StartPosition)
+	max := int(Player)
 
 	lvl := make(Cells, 10)
 
@@ -74,7 +74,7 @@ func TestValidateCells(t *testing.T) {
 		}
 	}
 
-	lvl[0][0] = StartPosition // one player on map
+	lvl[0][0] = Player // one player on map
 
 	if _, err := validateCells(lvl); err != nil {
 		t.Errorf("validateCells on a valid map returned an error: %v", err)

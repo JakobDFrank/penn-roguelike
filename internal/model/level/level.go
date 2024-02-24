@@ -12,9 +12,9 @@ const (
 
 type Level struct {
 	gorm.Model
-	Cells  Cells `gorm:"type:jsonb"`
-	XSpawn int
-	YSpawn int
+	Cells    Cells `gorm:"type:jsonb"`
+	RowStart int
+	ColStart int
 }
 
 func NewLevel(cells Cells) (*Level, error) {
@@ -25,9 +25,9 @@ func NewLevel(cells Cells) (*Level, error) {
 	}
 
 	lvl := &Level{
-		Cells:  cells,
-		XSpawn: pos.X,
-		YSpawn: pos.Y,
+		Cells:    cells,
+		RowStart: pos.RowIdx,
+		ColStart: pos.ColIdx,
 	}
 
 	return lvl, nil
@@ -95,29 +95,30 @@ func validateMapRectangular(cells Cells) error {
 }
 
 type cellPos struct {
-	X int
-	Y int
+	RowIdx int
+	ColIdx int
 }
 
 func validateCells(cells Cells) (*cellPos, error) {
 
 	playerCount := 0
 
-	pos := cellPos{}
+	pos := &cellPos{}
 
-	for i, row := range cells {
-		for j, cell := range row {
+	for rowIdx, row := range cells {
+		for colIdx, cell := range row {
 			if !cell.IsValid() {
-				return nil, &apperr.InvalidCellTypeError{Message: fmt.Sprintf("cell value: %d | row: %d | col: %d", cell, i, j)}
+				return nil, &apperr.InvalidCellTypeError{Message: fmt.Sprintf("cell value: %d | row: %d | col: %d", cell, rowIdx, colIdx)}
 			}
 
-			if cell == StartPosition {
+			if cell == Player {
 				playerCount += 1
 
-				pos.X = i
-				pos.Y = j
+				pos.RowIdx = rowIdx
+				pos.ColIdx = colIdx
+
 				if playerCount > 1 {
-					return nil, &apperr.InvalidCellTypeError{Message: fmt.Sprintf("more than one player in map | row: %d | col: %d", i, j)}
+					return nil, &apperr.InvalidCellTypeError{Message: fmt.Sprintf("more than one player in map | row: %d | col: %d", rowIdx, colIdx)}
 				}
 			}
 		}
@@ -127,5 +128,5 @@ func validateCells(cells Cells) (*cellPos, error) {
 		return nil, &apperr.InvalidCellTypeError{Message: fmt.Sprintf("no player in map")}
 	}
 
-	return &pos, nil
+	return pos, nil
 }

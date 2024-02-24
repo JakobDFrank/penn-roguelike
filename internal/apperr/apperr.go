@@ -31,6 +31,14 @@ func (e *InvalidCellTypeError) Error() string {
 	return fmt.Sprintf("invalid cell specified: %s", e.Message)
 }
 
+type UnimplementedError struct {
+	Message string
+}
+
+func (e *UnimplementedError) Error() string {
+	return fmt.Sprintf("unimplemented: %s", e.Message)
+}
+
 var (
 	ErrInvalidCast       = errors.New("type cast failure")
 	ErrMapNotRectangular = errors.New("map not rectangular")
