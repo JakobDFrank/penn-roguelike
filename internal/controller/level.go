@@ -24,11 +24,11 @@ type InsertLevelResponse struct {
 
 func NewLevelController(logger *zap.Logger, db *gorm.DB) (*LevelController, error) {
 	if db == nil {
-		return nil, &apperr.ArgumentNilError{Message: "db"}
+		return nil, &apperr.NilArgumentError{Message: "db"}
 	}
 
 	if logger == nil {
-		return nil, &apperr.ArgumentNilError{Message: "logger"}
+		return nil, &apperr.NilArgumentError{Message: "logger"}
 	}
 
 	lc := &LevelController{
@@ -64,6 +64,12 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 	lc.logger.Debug("unmarshalled_level", zap.Any("cells", cells))
 
 	level := &model.Level{Cells: cells}
+
+	if err := validateLevel(level); err != nil {
+		handleError(lc.logger, w, err)
+		return
+	}
+
 	res := lc.db.FirstOrCreate(level, &model.Level{Cells: cells})
 
 	if res.Error != nil {
@@ -91,6 +97,47 @@ func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
+}
+
+func validateLevel(level *model.Level) error {
+	cells := level.Cells
+
+	rowCount := len(cells)
+	if rowCount == 0 {
+		return apperr.ErrEmptyMap
+	}
+
+	// validate map size, don't want to iterate over potentially massive array
+
+	if rowCount > 100 {
+		return apperr.ErrMapTooLarge
+	}
+
+	// validate rectangular map
+	expectedColCount := len(cells[0])
+
+	if expectedColCount > 100 {
+		return apperr.ErrMapTooLarge
+	}
+
+	for _, row := range cells[1:] {
+		colCount := len(row)
+
+		if colCount != expectedColCount {
+			return apperr.ErrMapNotRectangular
+		}
+	}
+
+	// validate cells after ensuring map is rectangular
+	for i, row := range cells {
+		for j, cell := range row {
+			if !cell.IsValid() {
+				return &apperr.InvalidCellTypeError{Message: fmt.Sprintf("cell value: %d | row: %d | col: %d", cell, i, j)}
+			}
+		}
+	}
+
+	return nil
 }
 
 func handleError(logger *zap.Logger, w http.ResponseWriter, err error) {
