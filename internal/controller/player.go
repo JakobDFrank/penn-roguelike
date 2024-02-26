@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"net/http"
 	"time"
 )
 
@@ -39,64 +38,31 @@ func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerController, er
 	return pc, nil
 }
 
-// MovePlayer handles HTTP requests to move a player within the game.
-// It returns the new game state or an error.
-func (pc *PlayerController) MovePlayer(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+// MovePlayer
+func (pc *PlayerController) MovePlayer(id uint, dir model.Direction) (string, error) {
 
-	moveRequest := MovePlayerRequest{}
-
-	if err := deserializePostRequest(w, r, &moveRequest); err != nil {
-		handleError(pc.logger, w, err)
-		return
-	}
-
-	pc.logger.Debug("unmarshal", zap.Any("move_request", moveRequest))
-
-	lvl, err := pc.movePlayer(moveRequest)
+	lvl, err := pc.movePlayer(id, dir)
 
 	if err != nil {
-		handleError(pc.logger, w, err)
+		return "", err
 	}
 
 	cellJson, err := json.Marshal(lvl.Map)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return "", err
 	}
 
-	resp := MovePlayerResponse{
-		Id:     moveRequest.ID,
-		Level:  string(cellJson),
-		Status: http.StatusOK,
-	}
-
-	jsonData, err := json.Marshal(resp)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if _, err := w.Write(jsonData); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	return string(cellJson), err
 }
 
-func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*model.Level, error) {
-
-	dir, err := model.NewDirection(req.Direction)
-
-	if err != nil {
-		return nil, err
-	}
+func (pc *PlayerController) movePlayer(id uint, dir model.Direction) (*model.Level, error) {
 
 	pc.logger.Debug("move_player", zap.String("dir", dir.String()))
 
 	var lvl model.Level
 
-	if err := pc.db.First(&lvl, req.ID).Error; err != nil {
+	if err := pc.db.First(&lvl, id).Error; err != nil {
 		return nil, err
 	}
 
@@ -107,7 +73,7 @@ func (pc *PlayerController) movePlayer(req MovePlayerRequest) (*model.Level, err
 
 	var playr model.Player
 
-	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("level_id = ?", req.ID).First(&playr).Error; err != nil {
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("level_id = ?", id).First(&playr).Error; err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -205,23 +171,4 @@ func (pc *PlayerController) handlePlayerMoveAttempt(lvl *model.Level, p *model.P
 	}
 
 	return true
-}
-
-//--------------------------------------------------------------------------------
-// MovePlayerRequest
-//--------------------------------------------------------------------------------
-
-type MovePlayerRequest struct {
-	ID        uint `json:"id"`
-	Direction int  `json:"direction"`
-}
-
-//--------------------------------------------------------------------------------
-// MovePlayerResponse
-//--------------------------------------------------------------------------------
-
-type MovePlayerResponse struct {
-	Id     uint   `json:"id"`
-	Level  string `json:"level"`
-	Status int    `json:"status"`
 }

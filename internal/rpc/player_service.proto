@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option go_package = "github.com/JakobDFrank/penn-roguelike/internal/rpc";
+
+service PlayerService {
+  rpc MovePlayer(MovePlayerRequest) returns (MovePlayerResponse) {}
+}
+
+message MovePlayerRequest {
+  uint32 Id = 1;
+  Direction Direction = 2;
+}
+
+message MovePlayerResponse {
+  string Map = 1;
+}
+
+enum Direction {
+  LEFT = 0;
+  UP = 1;
+  RIGHT = 2;
+  DOWN = 3;
+}

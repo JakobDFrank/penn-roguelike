@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/controller"
+	"github.com/JakobDFrank/penn-roguelike/internal/driver"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
+	_ "google.golang.org/grpc"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
-	"net/http"
 	"os"
 	"time"
 )
@@ -38,14 +39,13 @@ func main() {
 		logger.Fatal("setup_db", zap.Error(err))
 	}
 
-	if err := setupHandlers(logger, db); err != nil {
+	driver, err := setupHandlers(logger, db)
+	if err != nil {
 		logger.Fatal("setup_server", zap.Error(err))
 	}
 
-	logger.Debug("Listening...")
-
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		logger.Fatal("listen_and_serve", zap.Error(err))
+	if err := driver.Serve(); err != nil {
+		logger.Fatal("serve", zap.Error(err))
 	}
 }
 
@@ -98,21 +98,31 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 
 // JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
 // however, it will increase complexity. trade-offs.
-func setupHandlers(logger *zap.Logger, db *gorm.DB) error {
+func setupHandlers(logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
 	lc, err := controller.NewLevelController(logger, db)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	pc, err := controller.NewPlayerController(logger, db)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	http.HandleFunc("/level/submit", lc.SubmitLevel)
-	http.HandleFunc("/player/move", pc.MovePlayer)
+	wd, err := driver.NewWebDriver(lc, pc, logger)
 
-	return nil
+	if err != nil {
+		return nil, err
+	}
+
+	//gd, err := driver.NewGrpcDriver(lc, pc, logger)
+	//
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//return gd, nil
+	return wd, nil
 }

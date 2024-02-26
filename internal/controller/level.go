@@ -1,13 +1,11 @@
 package controller
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 //--------------------------------------------------------------------------------
@@ -37,50 +35,22 @@ func NewLevelController(logger *zap.Logger, db *gorm.DB) (*LevelController, erro
 	return lc, nil
 }
 
-// SubmitLevel handles HTTP requests to insert levels that can be played.
-// It returns the unique ID of the level or an error.
-func (lc *LevelController) SubmitLevel(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json")
-
-	cells := make([][]model.Cell, 0)
-
-	if err := deserializePostRequest(w, r, &cells); err != nil {
-		handleError(lc.logger, w, err)
-		return
-	}
+// SubmitLevel
+func (lc *LevelController) SubmitLevel(cells [][]model.Cell) (uint, error) {
 
 	lc.logger.Debug("unmarshalled_level", zap.Any("cells", cells))
 
 	lvl, err := model.NewLevel(cells)
 
 	if err != nil {
-		handleError(lc.logger, w, err)
-		return
+		return 0, err
 	}
 
 	if err := lc.createMap(lvl); err != nil {
-		handleError(lc.logger, w, err)
-		return
+		return 0, err
 	}
 
-	resp := InsertLevelResponse{
-		Id:      lvl.ID,
-		Message: "",
-		Status:  http.StatusOK,
-	}
-
-	jsonData, err := json.Marshal(resp)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if _, err := w.Write(jsonData); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
+	return lvl.ID, nil
 }
 
 func (lc *LevelController) createMap(lvl *model.Level) error {
@@ -111,14 +81,4 @@ func (lc *LevelController) createMap(lvl *model.Level) error {
 	fmt.Println(lvl.Map.String())
 
 	return nil
-}
-
-//--------------------------------------------------------------------------------
-// InsertLevelResponse
-//--------------------------------------------------------------------------------
-
-type InsertLevelResponse struct {
-	Id      uint   `json:"id"`
-	Message string `json:"message"`
-	Status  int    `json:"status"`
 }
