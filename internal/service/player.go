@@ -1,4 +1,4 @@
-package controller
+package service
 
 import (
 	"encoding/json"
@@ -12,16 +12,16 @@ import (
 )
 
 //--------------------------------------------------------------------------------
-// PlayerController
+// PlayerService
 //--------------------------------------------------------------------------------
 
-// PlayerController handles HTTP requests for player management.
-type PlayerController struct {
+// PlayerService handles player management.
+type PlayerService struct {
 	db     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerController, error) {
+func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerService, error) {
 	if db == nil {
 		return nil, &apperr.NilArgumentError{Message: "db"}
 	}
@@ -30,7 +30,7 @@ func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerController, er
 		return nil, &apperr.NilArgumentError{Message: "logger"}
 	}
 
-	pc := &PlayerController{
+	pc := &PlayerService{
 		db:     db,
 		logger: logger,
 	}
@@ -38,8 +38,9 @@ func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerController, er
 	return pc, nil
 }
 
-// MovePlayer
-func (pc *PlayerController) MovePlayer(id uint, dir model.Direction) (string, error) {
+// MovePlayer will attempt to move a player on a map in a given direction.
+// It returns the new game state or an error.
+func (pc *PlayerService) MovePlayer(id uint, dir model.Direction) (string, error) {
 
 	lvl, err := pc.movePlayer(id, dir)
 
@@ -56,7 +57,7 @@ func (pc *PlayerController) MovePlayer(id uint, dir model.Direction) (string, er
 	return string(cellJson), err
 }
 
-func (pc *PlayerController) movePlayer(id uint, dir model.Direction) (*model.Level, error) {
+func (pc *PlayerService) movePlayer(id uint, dir model.Direction) (*model.Level, error) {
 
 	pc.logger.Debug("move_player", zap.String("dir", dir.String()))
 
@@ -114,7 +115,7 @@ func (pc *PlayerController) movePlayer(id uint, dir model.Direction) (*model.Lev
 	return &lvl, nil
 }
 
-func (pc *PlayerController) tryMove(lvl *model.Level, p *model.Player, dir model.Direction) (bool, error) {
+func (pc *PlayerService) tryMove(lvl *model.Level, p *model.Player, dir model.Direction) (bool, error) {
 	switch dir {
 	case model.Left:
 		if p.ColIdx > 0 {
@@ -144,7 +145,7 @@ func (pc *PlayerController) tryMove(lvl *model.Level, p *model.Player, dir model
 	return false, nil
 }
 
-func (pc *PlayerController) handlePlayerMoveAttempt(lvl *model.Level, p *model.Player, row, col int) bool {
+func (pc *PlayerService) handlePlayerMoveAttempt(lvl *model.Level, p *model.Player, row, col int) bool {
 	switch lvl.Map[row][col] {
 	case model.CellWall:
 		pc.logger.Info("player_blocked_by_wall")

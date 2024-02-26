@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/controller"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -15,16 +15,16 @@ const (
 	Mebibyte = Kibibyte * Kibibyte
 )
 
-// WebDriver handles HTTP requests
+// WebDriver handles HTTP requests.
 type WebDriver struct {
-	lc     *controller.LevelController
-	pc     *controller.PlayerController
+	lc     *service.LevelService
+	pc     *service.PlayerService
 	logger *zap.Logger
 }
 
 var _ Driver = (*WebDriver)(nil)
 
-func NewWebDriver(lc *controller.LevelController, pc *controller.PlayerController, logger *zap.Logger) (*WebDriver, error) {
+func NewWebDriver(lc *service.LevelService, pc *service.PlayerService, logger *zap.Logger) (*WebDriver, error) {
 
 	if lc == nil {
 		return nil, &apperr.NilArgumentError{Message: "lc"}
@@ -50,8 +50,6 @@ func NewWebDriver(lc *controller.LevelController, pc *controller.PlayerControlle
 	return wd, nil
 }
 
-// SubmitLevel handles HTTP requests to insert levels that can be played.
-// It returns the unique ID of the level or an error.
 func (wd *WebDriver) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -88,8 +86,6 @@ func (wd *WebDriver) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// MovePlayer handles HTTP requests to move a player within the game.
-// It returns the new game state or an error.
 func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

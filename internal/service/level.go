@@ -1,4 +1,4 @@
-package controller
+package service
 
 import (
 	"fmt"
@@ -9,16 +9,16 @@ import (
 )
 
 //--------------------------------------------------------------------------------
-// LevelController
+// LevelService
 //--------------------------------------------------------------------------------
 
-// LevelController handles HTTP requests for level management.
-type LevelController struct {
+// LevelService handles level management.
+type LevelService struct {
 	db     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewLevelController(logger *zap.Logger, db *gorm.DB) (*LevelController, error) {
+func NewLevelController(logger *zap.Logger, db *gorm.DB) (*LevelService, error) {
 	if db == nil {
 		return nil, &apperr.NilArgumentError{Message: "db"}
 	}
@@ -27,7 +27,7 @@ func NewLevelController(logger *zap.Logger, db *gorm.DB) (*LevelController, erro
 		return nil, &apperr.NilArgumentError{Message: "logger"}
 	}
 
-	lc := &LevelController{
+	lc := &LevelService{
 		db:     db,
 		logger: logger,
 	}
@@ -35,8 +35,9 @@ func NewLevelController(logger *zap.Logger, db *gorm.DB) (*LevelController, erro
 	return lc, nil
 }
 
-// SubmitLevel
-func (lc *LevelController) SubmitLevel(cells [][]model.Cell) (uint, error) {
+// SubmitLevel inserts levels that can be played.
+// It returns the unique ID of the level or an error.
+func (lc *LevelService) SubmitLevel(cells [][]model.Cell) (uint, error) {
 
 	lc.logger.Debug("unmarshalled_level", zap.Any("cells", cells))
 
@@ -53,7 +54,7 @@ func (lc *LevelController) SubmitLevel(cells [][]model.Cell) (uint, error) {
 	return lvl.ID, nil
 }
 
-func (lc *LevelController) createMap(lvl *model.Level) error {
+func (lc *LevelService) createMap(lvl *model.Level) error {
 	tx := lc.db.Begin()
 
 	lvlRes := tx.Create(lvl)

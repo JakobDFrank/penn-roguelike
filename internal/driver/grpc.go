@@ -3,18 +3,19 @@ package driver
 import (
 	"context"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/controller"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/rpc"
+	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"
 )
 
+// GrpcDriver handles gRPC calls.
 type GrpcDriver struct {
-	lc *controller.LevelController
-	pc *controller.PlayerController
+	lc *service.LevelService
+	pc *service.PlayerService
 
 	rpc.UnimplementedLevelServiceServer
 	rpc.UnimplementedPlayerServiceServer
@@ -24,7 +25,7 @@ type GrpcDriver struct {
 
 var _ Driver = (*GrpcDriver)(nil)
 
-func NewGrpcDriver(lc *controller.LevelController, pc *controller.PlayerController, logger *zap.Logger) (*GrpcDriver, error) {
+func NewGrpcDriver(lc *service.LevelService, pc *service.PlayerService, logger *zap.Logger) (*GrpcDriver, error) {
 	if lc == nil {
 		return nil, &apperr.NilArgumentError{Message: "lc"}
 	}

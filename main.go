@@ -3,9 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/JakobDFrank/penn-roguelike/internal/controller"
 	"github.com/JakobDFrank/penn-roguelike/internal/driver"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	_ "google.golang.org/grpc"
@@ -99,13 +99,13 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 // JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
 // however, it will increase complexity. trade-offs.
 func setupHandlers(logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
-	lc, err := controller.NewLevelController(logger, db)
+	lc, err := service.NewLevelController(logger, db)
 
 	if err != nil {
 		return nil, err
 	}
 
-	pc, err := controller.NewPlayerController(logger, db)
+	pc, err := service.NewPlayerController(logger, db)
 
 	if err != nil {
 		return nil, err
