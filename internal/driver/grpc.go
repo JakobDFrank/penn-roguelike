@@ -3,9 +3,9 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"github.com/JakobDFrank/penn-roguelike/api/rpc"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
-	"github.com/JakobDFrank/penn-roguelike/internal/rpc"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/JakobDFrank/penn-roguelike/api/graphql/graph"
+	gqlmodel "github.com/JakobDFrank/penn-roguelike/api/graphql/graph/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/graphql/graph"
-	gqlmodel "github.com/JakobDFrank/penn-roguelike/internal/graphql/graph/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	"go.uber.org/zap"
@@ -124,5 +124,8 @@ func (gd *GraphQLDriver) Serve() error {
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 
-	return http.ListenAndServe(":9091", nil)
+	addr := ":9091"
+	gd.logger.Info("graphql_server_listening", zap.String("addr", addr))
+
+	return http.ListenAndServe(addr, nil)
 }

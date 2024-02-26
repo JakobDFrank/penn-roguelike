@@ -14,7 +14,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/JakobDFrank/penn-roguelike/internal/graphql/graph/model"
+	"github.com/JakobDFrank/penn-roguelike/api/graphql/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -256,7 +256,7 @@ func (ec *executionContext) field_Mutation_movePlayer_args(ctx context.Context, 
 	var arg1 model.Direction
 	if tmp, ok := rawArgs["dir"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dir"))
-		arg1, err = ec.unmarshalNDirection2githubᚗcomᚋJakobDFrankᚋpennᚑroguelikeᚋinternalᚋgraphqlᚋgraphᚋmodelᚐDirection(ctx, tmp)
+		arg1, err = ec.unmarshalNDirection2githubᚗcomᚋJakobDFrankᚋpennᚑroguelikeᚋapiᚋgraphqlᚋgraphᚋmodelᚐDirection(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2785,13 +2785,13 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNDirection2githubᚗcomᚋJakobDFrankᚋpennᚑroguelikeᚋinternalᚋgraphqlᚋgraphᚋmodelᚐDirection(ctx context.Context, v interface{}) (model.Direction, error) {
+func (ec *executionContext) unmarshalNDirection2githubᚗcomᚋJakobDFrankᚋpennᚑroguelikeᚋapiᚋgraphqlᚋgraphᚋmodelᚐDirection(ctx context.Context, v interface{}) (model.Direction, error) {
 	var res model.Direction
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNDirection2githubᚗcomᚋJakobDFrankᚋpennᚑroguelikeᚋinternalᚋgraphqlᚋgraphᚋmodelᚐDirection(ctx context.Context, sel ast.SelectionSet, v model.Direction) graphql.Marshaler {
+func (ec *executionContext) marshalNDirection2githubᚗcomᚋJakobDFrankᚋpennᚑroguelikeᚋapiᚋgraphqlᚋgraphᚋmodelᚐDirection(ctx context.Context, sel ast.SelectionSet, v model.Direction) graphql.Marshaler {
 	return v
 }
 
