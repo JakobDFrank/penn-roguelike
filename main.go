@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
+	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/driver"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
@@ -13,6 +15,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -24,6 +27,28 @@ const (
 	DbNameEnvVar = "DB_NAME"
 )
 
+type serviceKindFlag struct {
+	service.ServiceKind
+}
+
+func (s *serviceKindFlag) Set(text string) error {
+	svc, exists := service.ServiceNameToEnum[strings.ToLower(text)]
+	if !exists {
+		return &apperr.InvalidArgumentError{Message: fmt.Sprintf("invalid service: %s", text)}
+	}
+	s.ServiceKind = svc
+	return nil
+}
+
+func (s *serviceKindFlag) String() string {
+	for k, v := range service.ServiceNameToEnum {
+		if v == s.ServiceKind {
+			return k
+		}
+	}
+	return ""
+}
+
 func main() {
 
 	logger, err := zap.NewDevelopment()
@@ -33,13 +58,17 @@ func main() {
 
 	defer logger.Sync()
 
+	var svc serviceKindFlag
+	flag.Var(&svc, "api", "Set the API to use (http or grpc)")
+	flag.Parse()
+
 	db, err := setupDatabase(logger)
 
 	if err != nil {
 		logger.Fatal("setup_db", zap.Error(err))
 	}
 
-	driver, err := setupHandlers(logger, db)
+	driver, err := setupHandlers(svc.ServiceKind, logger, db)
 	if err != nil {
 		logger.Fatal("setup_server", zap.Error(err))
 	}
@@ -98,7 +127,7 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 
 // JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
 // however, it will increase complexity. trade-offs.
-func setupHandlers(logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
+func setupHandlers(svc service.ServiceKind, logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
 	lc, err := service.NewLevelController(logger, db)
 
 	if err != nil {
@@ -111,18 +140,20 @@ func setupHandlers(logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
 		return nil, err
 	}
 
-	wd, err := driver.NewWebDriver(lc, pc, logger)
+	var drvr driver.Driver
+
+	switch svc {
+	case service.Http:
+		drvr, err = driver.NewWebDriver(lc, pc, logger)
+	case service.Grpc:
+		drvr, err = driver.NewGrpcDriver(lc, pc, logger)
+	default:
+		return nil, &apperr.UnimplementedError{Message: "service"}
+	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	//gd, err := driver.NewGrpcDriver(lc, pc, logger)
-	//
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//return gd, nil
-	return wd, nil
+	return drvr, nil
 }
