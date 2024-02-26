@@ -103,7 +103,14 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cellJson, err := wd.pc.MovePlayer(moveRequest.ID, dir)
+	gameMap, err := wd.pc.MovePlayer(moveRequest.ID, dir)
+
+	if err != nil {
+		wd.handleError(w, err)
+		return
+	}
+
+	js, err := json.Marshal(gameMap)
 
 	if err != nil {
 		wd.handleError(w, err)
@@ -114,7 +121,7 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 
 	resp := MovePlayerResponse{
 		Id:     moveRequest.ID,
-		Level:  cellJson,
+		Level:  string(js),
 		Status: http.StatusOK,
 	}
 

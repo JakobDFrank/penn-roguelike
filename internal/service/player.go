@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
@@ -40,21 +39,15 @@ func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerService, error
 
 // MovePlayer will attempt to move a player on a map in a given direction.
 // It returns the new game state or an error.
-func (pc *PlayerService) MovePlayer(id uint, dir model.Direction) (string, error) {
+func (pc *PlayerService) MovePlayer(id uint, dir model.Direction) (model.GameMap, error) {
 
 	lvl, err := pc.movePlayer(id, dir)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	cellJson, err := json.Marshal(lvl.Map)
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(cellJson), err
+	return lvl.Map, nil
 }
 
 func (pc *PlayerService) movePlayer(id uint, dir model.Direction) (*model.Level, error) {

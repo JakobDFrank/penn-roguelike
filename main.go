@@ -10,7 +10,6 @@ import (
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
-	_ "google.golang.org/grpc"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -27,22 +26,22 @@ const (
 	DbNameEnvVar = "DB_NAME"
 )
 
-type serviceKindFlag struct {
-	service.ServiceKind
+type driverKindFlag struct {
+	driver.DriverKind
 }
 
-func (s *serviceKindFlag) Set(text string) error {
-	svc, exists := service.ServiceNameToEnum[strings.ToLower(text)]
+func (s *driverKindFlag) Set(text string) error {
+	svc, exists := driver.DriverNameToEnum[strings.ToLower(text)]
 	if !exists {
 		return &apperr.InvalidArgumentError{Message: fmt.Sprintf("invalid service: %s", text)}
 	}
-	s.ServiceKind = svc
+	s.DriverKind = svc
 	return nil
 }
 
-func (s *serviceKindFlag) String() string {
-	for k, v := range service.ServiceNameToEnum {
-		if v == s.ServiceKind {
+func (s *driverKindFlag) String() string {
+	for k, v := range driver.DriverNameToEnum {
+		if v == s.DriverKind {
 			return k
 		}
 	}
@@ -58,8 +57,8 @@ func main() {
 
 	defer logger.Sync()
 
-	var svc serviceKindFlag
-	flag.Var(&svc, "api", "Set the API to use (http or grpc)")
+	var svc driverKindFlag
+	flag.Var(&svc, "api", "Set the API to use (http, grpc, or graphql)")
 	flag.Parse()
 
 	db, err := setupDatabase(logger)
@@ -68,7 +67,7 @@ func main() {
 		logger.Fatal("setup_db", zap.Error(err))
 	}
 
-	driver, err := setupHandlers(svc.ServiceKind, logger, db)
+	driver, err := setupHandlers(svc.DriverKind, logger, db)
 	if err != nil {
 		logger.Fatal("setup_server", zap.Error(err))
 	}
@@ -127,7 +126,7 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 
 // JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
 // however, it will increase complexity. trade-offs.
-func setupHandlers(svc service.ServiceKind, logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
+func setupHandlers(svc driver.DriverKind, logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
 	lc, err := service.NewLevelController(logger, db)
 
 	if err != nil {
@@ -143,10 +142,12 @@ func setupHandlers(svc service.ServiceKind, logger *zap.Logger, db *gorm.DB) (dr
 	var drvr driver.Driver
 
 	switch svc {
-	case service.Http:
+	case driver.Http:
 		drvr, err = driver.NewWebDriver(lc, pc, logger)
-	case service.Grpc:
+	case driver.Grpc:
 		drvr, err = driver.NewGrpcDriver(lc, pc, logger)
+	case driver.GraphQL:
+		drvr, err = driver.NewGraphQLDriver(lc, pc, logger)
 	default:
 		return nil, &apperr.UnimplementedError{Message: "service"}
 	}

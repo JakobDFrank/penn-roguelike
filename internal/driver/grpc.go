@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/rpc"
@@ -95,14 +96,20 @@ func (gd *GrpcDriver) MovePlayer(_ context.Context, req *rpc.MovePlayerRequest) 
 		return nil, &apperr.UnimplementedError{Message: "[MovePlayer] Direction"}
 	}
 
-	js, err := gd.pc.MovePlayer(uint(req.Id), dir)
+	gameMap, err := gd.pc.MovePlayer(uint(req.Id), dir)
+
+	if err != nil {
+		return nil, err
+	}
+
+	js, err := json.Marshal(gameMap)
 
 	if err != nil {
 		return nil, err
 	}
 
 	resp := &rpc.MovePlayerResponse{
-		Map: js,
+		Map: string(js),
 	}
 
 	return resp, nil
