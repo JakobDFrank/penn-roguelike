@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -14,7 +15,9 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -50,6 +53,9 @@ func (s *driverKindFlag) String() string {
 
 func main() {
 
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		log.Fatal(err)
@@ -72,7 +78,7 @@ func main() {
 		logger.Fatal("setup_server", zap.Error(err))
 	}
 
-	if err := driver.Serve(); err != nil {
+	if err := driver.Serve(ctx); err != nil {
 		logger.Fatal("serve", zap.Error(err))
 	}
 }
