@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
@@ -141,11 +142,10 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (wd *WebDriver) Serve() error {
-	wd.logger.Debug("Listening...")
+func (wd *WebDriver) Serve(onExitCtx context.Context) error {
+	wd.logger.Info("http_server_start_listening")
 
-	addr := fmt.Sprintf(":%d", _httpPort)
-	return http.ListenAndServe(addr, nil)
+	return httpGracefulServe(_httpPort, onExitCtx, wd.logger)
 }
 
 func deserializePostRequest(w http.ResponseWriter, r *http.Request, value any) error {

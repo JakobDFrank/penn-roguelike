@@ -3,7 +3,6 @@ package driver
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/JakobDFrank/penn-roguelike/api/graphql/graph"
@@ -48,13 +47,18 @@ func NewGraphQLDriver(levelService *service.LevelService, playerService *service
 		return nil, &apperr.NilArgumentError{Message: "logger"}
 	}
 
-	wd := &GraphQLDriver{
+	gd := &GraphQLDriver{
 		levelService:  levelService,
 		playerService: playerService,
 		logger:        logger,
 	}
 
-	return wd, nil
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: gd}))
+
+	http.Handle("/", playground.Handler("GraphQL playground", _graphQLEndpoint))
+	http.Handle(_graphQLEndpoint, srv)
+
+	return gd, nil
 }
 
 // InsertLevel is the resolver for the insertLevel field in the GraphQL schema.
@@ -124,16 +128,10 @@ func (gd *GraphQLDriver) MovePlayer(ctx context.Context, id string, dir gqlmodel
 	return string(js), nil
 }
 
-func (gd *GraphQLDriver) Serve() error {
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: gd}))
+func (gd *GraphQLDriver) Serve(onExitCtx context.Context) error {
+	gd.logger.Info("graphql_server_start_listening")
 
-	http.Handle("/", playground.Handler("GraphQL playground", _graphQLEndpoint))
-	http.Handle(_graphQLEndpoint, srv)
-
-	addr := fmt.Sprintf(":%d", _graphQLPort)
-	gd.logger.Info("graphql_server_listening", zap.String("addr", addr))
-
-	return http.ListenAndServe(addr, nil)
+	return httpGracefulServe(_graphQLPort, onExitCtx, gd.logger)
 }
 
 func (gd *GraphQLDriver) Mutation() graph.MutationResolver {

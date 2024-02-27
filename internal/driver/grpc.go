@@ -123,7 +123,7 @@ func (gd *GrpcDriver) MovePlayer(_ context.Context, req *rpc.MovePlayerRequest) 
 	return resp, nil
 }
 
-func (gd *GrpcDriver) Serve() error {
+func (gd *GrpcDriver) Serve(onExitCtx context.Context) error {
 
 	addr := fmt.Sprintf(":%d", _grpcPort)
 	lis, err := net.Listen("tcp", addr)
@@ -140,6 +140,15 @@ func (gd *GrpcDriver) Serve() error {
 	reflection.Register(s)
 
 	gd.logger.Info("grpc_server_listening", zap.Any("addr", lis.Addr()))
+
+	go func() {
+		<-onExitCtx.Done()
+		gd.logger.Warn("shutting_down_server")
+
+		s.GracefulStop()
+
+		gd.logger.Warn("server_exit")
+	}()
 
 	if err := s.Serve(lis); err != nil {
 		gd.logger.Error("failed to serve", zap.Error(err))
