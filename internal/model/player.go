@@ -24,6 +24,7 @@ type Player struct {
 	LevelID uint
 }
 
+// NewPlayer creates a new instance of Player.
 func NewPlayer(levelID uint, startRowIdx, startColIdx int) *Player {
 	return &Player{
 		Hitpoints: _startingHitpoints,
@@ -34,6 +35,7 @@ func NewPlayer(levelID uint, startRowIdx, startColIdx int) *Player {
 	}
 }
 
+// ResetHitpoints resets the player's hitpoints to _startingHitpoints.
 func (p *Player) ResetHitpoints() {
 	p.Hitpoints = _startingHitpoints
 }
@@ -52,6 +54,7 @@ const (
 	Down
 )
 
+// NewDirection creates a new instance of Direction
 func NewDirection(dir int) (Direction, error) {
 	d := Direction(dir)
 
@@ -62,6 +65,7 @@ func NewDirection(dir int) (Direction, error) {
 	return 0, &apperr.InvalidArgumentError{Message: fmt.Sprintf("direction: %d", dir)}
 }
 
+// IsValid verifies if the Direction instance is a valid Direction member.
 func (d *Direction) IsValid() bool {
 	switch *d {
 	case Left, Right, Up, Down:

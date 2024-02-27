@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "github.com/JakobDFrank/penn-roguelike/api/rpc";
+
+service LevelService {
+  rpc CreateLevel(CreateLevelRequest) returns (CreateLevelResponse) {}
+}
+
+message CreateLevelRequest {
+  repeated Rows Level = 1;
+}
+
+message Rows {
+  repeated int32 Cells = 1;
+}
+
+message CreateLevelResponse {
+  uint32 Id = 1;
+}

@@ -1,0 +1,11 @@
+type Mutation {
+  insertLevel(level: [[Int!]]!): ID!
+  movePlayer(id: ID!, dir: Direction!): String!
+}
+
+enum Direction {
+  LEFT,
+  RIGHT,
+  UP,
+  DOWN
+}

@@ -2,16 +2,19 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
-	"github.com/JakobDFrank/penn-roguelike/internal/controller"
+	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
+	"github.com/JakobDFrank/penn-roguelike/internal/driver"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
-	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -23,6 +26,28 @@ const (
 	DbNameEnvVar = "DB_NAME"
 )
 
+type driverKindFlag struct {
+	driver.DriverKind
+}
+
+func (s *driverKindFlag) Set(text string) error {
+	svc, exists := driver.DriverNameToEnum[strings.ToLower(text)]
+	if !exists {
+		return &apperr.InvalidArgumentError{Message: fmt.Sprintf("invalid service: %s", text)}
+	}
+	s.DriverKind = svc
+	return nil
+}
+
+func (s *driverKindFlag) String() string {
+	for k, v := range driver.DriverNameToEnum {
+		if v == s.DriverKind {
+			return k
+		}
+	}
+	return ""
+}
+
 func main() {
 
 	logger, err := zap.NewDevelopment()
@@ -32,20 +57,23 @@ func main() {
 
 	defer logger.Sync()
 
+	var svc driverKindFlag
+	flag.Var(&svc, "api", "Set the API to use (http, grpc, or graphql)")
+	flag.Parse()
+
 	db, err := setupDatabase(logger)
 
 	if err != nil {
 		logger.Fatal("setup_db", zap.Error(err))
 	}
 
-	if err := setupHandlers(logger, db); err != nil {
+	driver, err := setupHandlers(svc.DriverKind, logger, db)
+	if err != nil {
 		logger.Fatal("setup_server", zap.Error(err))
 	}
 
-	logger.Debug("Listening...")
-
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		logger.Fatal("listen_and_serve", zap.Error(err))
+	if err := driver.Serve(); err != nil {
+		logger.Fatal("serve", zap.Error(err))
 	}
 }
 
@@ -98,21 +126,35 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 
 // JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
 // however, it will increase complexity. trade-offs.
-func setupHandlers(logger *zap.Logger, db *gorm.DB) error {
-	lc, err := controller.NewLevelController(logger, db)
+func setupHandlers(svc driver.DriverKind, logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
+	lc, err := service.NewLevelService(logger, db)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	pc, err := controller.NewPlayerController(logger, db)
+	pc, err := service.NewPlayerService(logger, db)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	http.HandleFunc("/level/submit", lc.SubmitLevel)
-	http.HandleFunc("/player/move", pc.MovePlayer)
+	var drvr driver.Driver
 
-	return nil
+	switch svc {
+	case driver.Http:
+		drvr, err = driver.NewWebDriver(lc, pc, logger)
+	case driver.Grpc:
+		drvr, err = driver.NewGrpcDriver(lc, pc, logger)
+	case driver.GraphQL:
+		drvr, err = driver.NewGraphQLDriver(lc, pc, logger)
+	default:
+		return nil, &apperr.UnimplementedError{Message: "service"}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return drvr, nil
 }

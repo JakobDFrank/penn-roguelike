@@ -14,10 +14,11 @@ import (
 //--------------------------------------------------------------------------------
 
 const (
-	MaxLevelSize = 100
+	MaxLevelSize         = 100
+	_expectedPlayerCount = 1
 )
 
-// Level is an entity in the database that holds information on map data
+// Level is an entity in the database that holds information on map data.
 type Level struct {
 	gorm.Model
 	Map         GameMap `gorm:"type:jsonb"`
@@ -25,6 +26,7 @@ type Level struct {
 	ColStartIdx int     // ColStartIdx is the player's starting column index. It is used to restore the player on death.
 }
 
+// NewLevel creates a new instance of Level.
 func NewLevel(gameMap GameMap) (*Level, error) {
 	pos, err := validateMap(gameMap)
 
@@ -69,13 +71,13 @@ func validateMapSize(gameMap GameMap) error {
 		return apperr.ErrEmptyMap
 	}
 
-	if rowCount > 100 {
+	if rowCount > MaxLevelSize {
 		return apperr.ErrMapTooLarge
 	}
 
 	expectedColCount := len(gameMap[0])
 
-	if expectedColCount > 100 {
+	if expectedColCount > MaxLevelSize {
 		return apperr.ErrMapTooLarge
 	}
 
@@ -132,8 +134,8 @@ func validateCells(gameMap GameMap) (*cellPos, error) {
 		}
 	}
 
-	if playerCount != 1 {
-		return nil, &apperr.InvalidCellTypeError{Message: fmt.Sprintf("no player in map")}
+	if playerCount != _expectedPlayerCount {
+		return nil, &apperr.InvalidCellTypeError{Message: fmt.Sprintf("unexpected player count: %d (expected: %d)", playerCount, _expectedPlayerCount)}
 	}
 
 	return pos, nil
@@ -186,6 +188,7 @@ const (
 	CellPlayer             // The player's character
 )
 
+// NewCell creates an implementation of Cell.
 func NewCell(cell int) (Cell, error) {
 	c := Cell(cell)
 
@@ -196,6 +199,7 @@ func NewCell(cell int) (Cell, error) {
 	return 0, &apperr.InvalidArgumentError{Message: fmt.Sprintf("cell: %d", cell)}
 }
 
+// IsValid verifies if the Cell instance is a valid Cell member.
 func (c *Cell) IsValid() bool {
 	switch *c {
 	case CellOpen, CellWall, CellPit, CellArrow, CellPlayer:
