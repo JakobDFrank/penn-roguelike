@@ -18,7 +18,8 @@ type LevelService struct {
 	logger *zap.Logger
 }
 
-func NewLevelController(logger *zap.Logger, db *gorm.DB) (*LevelService, error) {
+// NewLevelService creates a new instance of LevelService.
+func NewLevelService(logger *zap.Logger, db *gorm.DB) (*LevelService, error) {
 	if db == nil {
 		return nil, &apperr.NilArgumentError{Message: "db"}
 	}

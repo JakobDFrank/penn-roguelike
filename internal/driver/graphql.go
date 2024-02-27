@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/JakobDFrank/penn-roguelike/api/graphql/graph"
@@ -15,18 +16,48 @@ import (
 	"strconv"
 )
 
+//--------------------------------------------------------------------------------
+// GraphQLDriver
+//--------------------------------------------------------------------------------
+
+const (
+	_graphQLPort     = 9091
+	_graphQLEndpoint = "/query"
+)
+
+// GraphQLDriver handles GraphQL calls.
 type GraphQLDriver struct {
-	lc     *service.LevelService
-	pc     *service.PlayerService
-	logger *zap.Logger
+	levelService  *service.LevelService
+	playerService *service.PlayerService
+	logger        *zap.Logger
 	graph.ResolverRoot
 }
 
-func (gd *GraphQLDriver) Mutation() graph.MutationResolver {
-	return gd
+// NewGraphQLDriver creates a new instance of GraphQLDriver.
+func NewGraphQLDriver(levelService *service.LevelService, playerService *service.PlayerService, logger *zap.Logger) (*GraphQLDriver, error) {
+
+	if levelService == nil {
+		return nil, &apperr.NilArgumentError{Message: "levelService"}
+	}
+
+	if playerService == nil {
+		return nil, &apperr.NilArgumentError{Message: "playerService"}
+	}
+
+	if logger == nil {
+		return nil, &apperr.NilArgumentError{Message: "logger"}
+	}
+
+	wd := &GraphQLDriver{
+		levelService:  levelService,
+		playerService: playerService,
+		logger:        logger,
+	}
+
+	return wd, nil
 }
 
-// InsertLevel is the resolver for the insertLevel field.
+// InsertLevel is the resolver for the insertLevel field in the GraphQL schema.
 func (gd *GraphQLDriver) InsertLevel(ctx context.Context, level [][]int) (string, error) {
 	cells := make([][]model.Cell, 0)
 
@@ -46,7 +77,7 @@ func (gd *GraphQLDriver) InsertLevel(ctx context.Context, level [][]int) (string
 		cells = append(cells, row)
 	}
 
-	id, err := gd.lc.SubmitLevel(cells)
+	id, err := gd.levelService.SubmitLevel(cells)
 
 	if err != nil {
 		return "", err
@@ -55,7 +86,7 @@ func (gd *GraphQLDriver) InsertLevel(ctx context.Context, level [][]int) (string
 	return strconv.FormatUint(uint64(id), 10), nil
 }
 
-// MovePlayer is the resolver for the movePlayer field.
+// MovePlayer is the resolver for the movePlayer field in the GraphQL schema.
 func (gd *GraphQLDriver) MovePlayer(ctx context.Context, id string, dir gqlmodel.Direction) (string, error) {
 	var d model.Direction
 
@@ -78,7 +109,7 @@ func (gd *GraphQLDriver) MovePlayer(ctx context.Context, id string, dir gqlmodel
 		return "", err
 	}
 
-	gameMap, err := gd.pc.MovePlayer(uint(mapId), d)
+	gameMap, err := gd.playerService.MovePlayer(uint(mapId), d)
 
 	if err != nil {
 		return "", err
@@ -93,39 +124,20 @@ func (gd *GraphQLDriver) MovePlayer(ctx context.Context, id string, dir gqlmodel
 	return string(js), nil
 }
 
-var _ Driver = (*GraphQLDriver)(nil)
-
-func NewGraphQLDriver(lc *service.LevelService, pc *service.PlayerService, logger *zap.Logger) (*GraphQLDriver, error) {
-
-	if lc == nil {
-		return nil, &apperr.NilArgumentError{Message: "lc"}
-	}
-
-	if pc == nil {
-		return nil, &apperr.NilArgumentError{Message: "pc"}
-	}
-
-	if logger == nil {
-		return nil, &apperr.NilArgumentError{Message: "logger"}
-	}
-
-	wd := &GraphQLDriver{
-		lc:     lc,
-		pc:     pc,
-		logger: logger,
-	}
-
-	return wd, nil
-}
-
 func (gd *GraphQLDriver) Serve() error {
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: gd}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	http.Handle("/", playground.Handler("GraphQL playground", _graphQLEndpoint))
+	http.Handle(_graphQLEndpoint, srv)
 
-	addr := ":9091"
+	addr := fmt.Sprintf(":%d", _graphQLPort)
 	gd.logger.Info("graphql_server_listening", zap.String("addr", addr))
 
 	return http.ListenAndServe(addr, nil)
 }
+
+func (gd *GraphQLDriver) Mutation() graph.MutationResolver {
+	return gd
+}
+
+var _ Driver = (*GraphQLDriver)(nil)

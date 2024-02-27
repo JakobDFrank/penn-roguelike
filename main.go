@@ -127,13 +127,13 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 // JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
 // however, it will increase complexity. trade-offs.
 func setupHandlers(svc driver.DriverKind, logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
-	lc, err := service.NewLevelController(logger, db)
+	lc, err := service.NewLevelService(logger, db)
 
 	if err != nil {
 		return nil, err
 	}
 
-	pc, err := service.NewPlayerController(logger, db)
+	pc, err := service.NewPlayerService(logger, db)
 
 	if err != nil {
 		return nil, err

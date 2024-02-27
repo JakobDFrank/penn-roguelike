@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/api/rpc"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/model"
@@ -13,10 +14,18 @@ import (
 	"net"
 )
 
+//--------------------------------------------------------------------------------
+// GrpcDriver
+//--------------------------------------------------------------------------------
+
+const (
+	_grpcPort = 9090
+)
+
 // GrpcDriver handles gRPC calls.
 type GrpcDriver struct {
-	lc *service.LevelService
-	pc *service.PlayerService
+	levelService  *service.LevelService
+	playerService *service.PlayerService
 
 	rpc.UnimplementedLevelServiceServer
 	rpc.UnimplementedPlayerServiceServer
@@ -24,15 +33,14 @@ type GrpcDriver struct {
 	logger *zap.Logger
 }
 
-var _ Driver = (*GrpcDriver)(nil)
-
-func NewGrpcDriver(lc *service.LevelService, pc *service.PlayerService, logger *zap.Logger) (*GrpcDriver, error) {
-	if lc == nil {
-		return nil, &apperr.NilArgumentError{Message: "lc"}
+// NewGrpcDriver creates a new instance of GrpcDriver.
+func NewGrpcDriver(levelService *service.LevelService, playerService *service.PlayerService, logger *zap.Logger) (*GrpcDriver, error) {
+	if levelService == nil {
+		return nil, &apperr.NilArgumentError{Message: "levelService"}
 	}
 
-	if pc == nil {
-		return nil, &apperr.NilArgumentError{Message: "pc"}
+	if playerService == nil {
+		return nil, &apperr.NilArgumentError{Message: "playerService"}
 	}
 
 	if logger == nil {
@@ -40,9 +48,9 @@ func NewGrpcDriver(lc *service.LevelService, pc *service.PlayerService, logger *
 	}
 
 	gd := &GrpcDriver{
-		lc:     lc,
-		pc:     pc,
-		logger: logger,
+		levelService:  levelService,
+		playerService: playerService,
+		logger:        logger,
 	}
 
 	return gd, nil
@@ -68,7 +76,7 @@ func (gd *GrpcDriver) CreateLevel(_ context.Context, req *rpc.CreateLevelRequest
 		cells = append(cells, row)
 	}
 
-	id, err := gd.lc.SubmitLevel(cells)
+	id, err := gd.levelService.SubmitLevel(cells)
 
 	if err != nil {
 		return nil, err
@@ -96,7 +104,7 @@ func (gd *GrpcDriver) MovePlayer(_ context.Context, req *rpc.MovePlayerRequest) 
 		return nil, &apperr.UnimplementedError{Message: "[MovePlayer] Direction"}
 	}
 
-	gameMap, err := gd.pc.MovePlayer(uint(req.Id), dir)
+	gameMap, err := gd.playerService.MovePlayer(uint(req.Id), dir)
 
 	if err != nil {
 		return nil, err
@@ -117,7 +125,8 @@ func (gd *GrpcDriver) MovePlayer(_ context.Context, req *rpc.MovePlayerRequest) 
 
 func (gd *GrpcDriver) Serve() error {
 
-	lis, err := net.Listen("tcp", ":9090")
+	addr := fmt.Sprintf(":%d", _grpcPort)
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		gd.logger.Error("failed to listen", zap.Error(err))
 		return err
@@ -139,3 +148,5 @@ func (gd *GrpcDriver) Serve() error {
 
 	return nil
 }
+
+var _ Driver = (*GrpcDriver)(nil)

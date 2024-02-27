@@ -20,7 +20,8 @@ type PlayerService struct {
 	logger *zap.Logger
 }
 
-func NewPlayerController(logger *zap.Logger, db *gorm.DB) (*PlayerService, error) {
+// NewPlayerService creates a new instance of PlayerService.
+func NewPlayerService(logger *zap.Logger, db *gorm.DB) (*PlayerService, error) {
 	if db == nil {
 		return nil, &apperr.NilArgumentError{Message: "db"}
 	}
@@ -75,6 +76,7 @@ func (pc *PlayerService) movePlayer(id uint, dir model.Direction) (*model.Level,
 	oldRowIdx := playr.RowIdx
 	oldColIdx := playr.ColIdx
 
+	// modify local, initial map to reflect current state
 	lvl.Map[lvl.RowStartIdx][lvl.ColStartIdx] = model.CellOpen
 	lvl.Map[oldRowIdx][oldColIdx] = model.CellPlayer
 	fmt.Printf("before: \n%s\n", lvl.Map.String())
@@ -100,6 +102,7 @@ func (pc *PlayerService) movePlayer(id uint, dir model.Direction) (*model.Level,
 	end := time.Now()
 	pc.logger.Debug("end_transaction", zap.Time("end_time", end), zap.Duration("elapsed", end.Sub(start)))
 
+	// modify local map to reflect player movement
 	lvl.Map[oldRowIdx][oldColIdx] = model.CellOpen
 	lvl.Map[playr.RowIdx][playr.ColIdx] = model.CellPlayer
 

@@ -11,27 +11,31 @@ import (
 )
 
 const (
-	Kibibyte = 1024
-	Mebibyte = Kibibyte * Kibibyte
+	_httpPort = 8080
+	Kibibyte  = 1024
+	Mebibyte  = Kibibyte * Kibibyte
 )
+
+//--------------------------------------------------------------------------------
+// WebDriver
+//--------------------------------------------------------------------------------
 
 // WebDriver handles HTTP requests.
 type WebDriver struct {
-	lc     *service.LevelService
-	pc     *service.PlayerService
-	logger *zap.Logger
+	levelService  *service.LevelService
+	playerService *service.PlayerService
+	logger        *zap.Logger
 }
 
-var _ Driver = (*WebDriver)(nil)
+// NewWebDriver creates a new instance of WebDriver.
+func NewWebDriver(levelService *service.LevelService, playerService *service.PlayerService, logger *zap.Logger) (*WebDriver, error) {
 
-func NewWebDriver(lc *service.LevelService, pc *service.PlayerService, logger *zap.Logger) (*WebDriver, error) {
-
-	if lc == nil {
-		return nil, &apperr.NilArgumentError{Message: "lc"}
+	if levelService == nil {
+		return nil, &apperr.NilArgumentError{Message: "levelService"}
 	}
 
-	if pc == nil {
-		return nil, &apperr.NilArgumentError{Message: "pc"}
+	if playerService == nil {
+		return nil, &apperr.NilArgumentError{Message: "playerService"}
 	}
 
 	if logger == nil {
@@ -39,9 +43,9 @@ func NewWebDriver(lc *service.LevelService, pc *service.PlayerService, logger *z
 	}
 
 	wd := &WebDriver{
-		lc:     lc,
-		pc:     pc,
-		logger: logger,
+		levelService:  levelService,
+		playerService: playerService,
+		logger:        logger,
 	}
 
 	http.HandleFunc("/level/submit", wd.SubmitLevel)
@@ -60,7 +64,7 @@ func (wd *WebDriver) SubmitLevel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := wd.lc.SubmitLevel(cells)
+	id, err := wd.levelService.SubmitLevel(cells)
 
 	if err != nil {
 		wd.handleError(w, err)
@@ -103,7 +107,7 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gameMap, err := wd.pc.MovePlayer(moveRequest.ID, dir)
+	gameMap, err := wd.playerService.MovePlayer(moveRequest.ID, dir)
 
 	if err != nil {
 		wd.handleError(w, err)
@@ -140,7 +144,8 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 func (wd *WebDriver) Serve() error {
 	wd.logger.Debug("Listening...")
 
-	return http.ListenAndServe(":8080", nil)
+	addr := fmt.Sprintf(":%d", _httpPort)
+	return http.ListenAndServe(addr, nil)
 }
 
 func deserializePostRequest(w http.ResponseWriter, r *http.Request, value any) error {
@@ -186,6 +191,8 @@ func (wd *WebDriver) handleError(w http.ResponseWriter, err error) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
+
+var _ Driver = (*WebDriver)(nil)
 
 //--------------------------------------------------------------------------------
 // InsertLevelResponse
