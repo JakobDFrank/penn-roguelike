@@ -38,11 +38,13 @@ sudo systemctl start docker
 
 1. Clone the repository.
 
-2. Open a terminal and navigate to the root directory.
+2. Open a terminal and navigate to the root directory. 
+   
+3. (Optional) To change the server type, edit the -api flag in ./Dockerfile to http (default), grpc, or graphql, changing which server is launched.
 
-3. Run `docker-compose up --build` to start the application.
+4. Run `docker-compose up --build` to start the application.
 
-4. In another terminal, run the following commands to manage the program.
+5. In another terminal, run the following commands to manage the program.
 
 
 
@@ -56,6 +58,7 @@ This endpoint expects a 2d array of integers from zero to four, inclusive.
 - `3` for arrows (player takes two damage)
 - `4` for the player
 
+HTTP example:
 ```shell
 curl -X POST http://localhost:8080/level/submit \
 -H "Content-Type: application/json" \
@@ -81,6 +84,7 @@ The `direction` parameter is defined as follows:
 - `2` for up
 - `3` for down
 
+HTTP example:
 ```shell
 curl -X POST http://localhost:8080/player/move \
      -H "Content-Type: application/json" \
