@@ -54,6 +54,13 @@ const (
 	Down
 )
 
+var DirectionNameToEnum = map[string]Direction{
+	"left":  Left,
+	"right": Right,
+	"up":    Up,
+	"down":  Down,
+}
+
 // NewDirection creates a new instance of Direction
 func NewDirection(dir int) (Direction, error) {
 	d := Direction(dir)
@@ -76,16 +83,10 @@ func (d *Direction) IsValid() bool {
 }
 
 func (d *Direction) String() string {
-	switch *d {
-	case Left:
-		return "Left"
-	case Right:
-		return "Right"
-	case Up:
-		return "Up"
-	case Down:
-		return "Down"
-	default:
-		return "unimplemented"
+	for k, v := range DirectionNameToEnum {
+		if v == *d {
+			return k
+		}
 	}
+	return ""
 }
