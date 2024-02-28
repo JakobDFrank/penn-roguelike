@@ -40,9 +40,9 @@ sudo systemctl start docker
 
 2. Open a terminal and navigate to the root directory. 
    
-3. (Optional) To change the server type, edit the -api flag in ./Dockerfile to http (default), grpc, or graphql, changing which server is launched.
+3. (Optional) To modify the server type, use docker-compose build --build-arg API=TYPE, replacing TYPE with http (default), grpc, or graphql. This changes the server launched.
 
-4. Run `docker-compose up --build` to start the application.
+4. Run `docker-compose up` to start the application.
 
 5. In another terminal, run the following commands to manage the program.
 

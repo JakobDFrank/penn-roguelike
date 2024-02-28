@@ -15,5 +15,6 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Run App with Docker
-      run: docker-compose up -d --build
-
+      run: |
+        docker-compose build --build-arg API=grpc
+        docker-compose up -d
