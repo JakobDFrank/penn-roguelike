@@ -3,19 +3,23 @@ package main
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"flag"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
+	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/driver"
-	"github.com/JakobDFrank/penn-roguelike/internal/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"io/fs"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -52,16 +56,15 @@ func (s *driverKindFlag) String() string {
 }
 
 func main() {
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer logger.Sync()
+
+	ctx, cancel := setupGracefulExit(logger)
+	defer cancel()
 
 	var svc driverKindFlag
 	flag.Var(&svc, "api", "Set the API to use (http, grpc, or graphql)")
@@ -73,6 +76,8 @@ func main() {
 		logger.Fatal("setup_db", zap.Error(err))
 	}
 
+	defer db.Close()
+
 	driver, err := setupHandlers(svc.DriverKind, logger, db)
 	if err != nil {
 		logger.Fatal("setup_server", zap.Error(err))
@@ -83,7 +88,24 @@ func main() {
 	}
 }
 
-func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
+func setupGracefulExit(logger *zap.Logger) (context.Context, context.CancelFunc) {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-ctx.Done()
+		logger.Info("wait_for_cleanup")
+		time.Sleep(time.Second * 3)
+		logger.Warn("exiting...")
+		os.Exit(0)
+	}()
+
+	return ctx, cancel
+}
+
+//go:embed internal/database/migrations/*.sql
+var migrations embed.FS
+
+func setupDatabase(logger *zap.Logger) (*sql.DB, error) {
 	dbHost := os.Getenv(DbHostEnvVar)
 	dbUser := os.Getenv(DbUserEnvVar)
 	dbName := os.Getenv(DbNameEnvVar)
@@ -117,29 +139,84 @@ func setupDatabase(logger *zap.Logger) (*gorm.DB, error) {
 		time.Sleep(time.Second)
 	}
 
-	gormDb, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+	if err := handleSchemaMigration(db, dbName); err != nil {
+		logger.Error("schema_migration", zap.Error(err))
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func handleSchemaMigration(db *sql.DB, dbName string) error {
+	tempDir, err := os.MkdirTemp("", "schema")
 	if err != nil {
-		logger.Error("gorm_open", zap.Error(err))
-		return nil, err
+		return err
 	}
 
-	if err := gormDb.AutoMigrate(&model.Level{}, &model.Player{}); err != nil {
-		return nil, err
+	// recreate migrations directory in temp folder - small size, should be fine
+	if err := fs.WalkDir(migrations, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !d.IsDir() {
+			content, err := migrations.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			tempFilePath := filepath.Join(tempDir, filepath.Base(path))
+			if err := os.WriteFile(tempFilePath, content, 0644); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
-	return gormDb, nil
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+
+	m, err := migrate.NewWithDatabaseInstance(
+		fmt.Sprintf("file://%s", tempDir),
+		dbName, driver)
+
+	if err != nil {
+		return err
+	}
+
+	// handle migration
+	if err := m.Up(); err != nil && err.Error() != "no change" {
+		return err
+	}
+
+	return nil
 }
 
 // JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
 // however, it will increase complexity. trade-offs.
-func setupHandlers(svc driver.DriverKind, logger *zap.Logger, db *gorm.DB) (driver.Driver, error) {
-	lc, err := service.NewLevelService(logger, db)
+func setupHandlers(svc driver.DriverKind, logger *zap.Logger, db *sql.DB) (driver.Driver, error) {
+
+	levelRepo, err := model.NewLevelRepository(db)
 
 	if err != nil {
 		return nil, err
 	}
 
-	pc, err := service.NewPlayerService(logger, db)
+	playerRepo, err := model.NewPlayerRepository(db)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lc, err := service.NewLevelService(logger, levelRepo, playerRepo)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pc, err := service.NewPlayerService(logger, levelRepo, playerRepo)
 
 	if err != nil {
 		return nil, err

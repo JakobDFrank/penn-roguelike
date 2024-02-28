@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	"go.uber.org/zap"
 	"net/http"
@@ -101,14 +101,7 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dir, err := model.NewDirection(moveRequest.Direction)
-
-	if err != nil {
-		wd.handleError(w, err)
-		return
-	}
-
-	gameMap, err := wd.playerService.MovePlayer(moveRequest.ID, dir)
+	gameMap, err := wd.playerService.MovePlayer(moveRequest.ID, moveRequest.Direction)
 
 	if err != nil {
 		wd.handleError(w, err)
@@ -199,7 +192,7 @@ var _ Driver = (*WebDriver)(nil)
 //--------------------------------------------------------------------------------
 
 type InsertLevelResponse struct {
-	Id      uint   `json:"id"`
+	Id      int32  `json:"id"`
 	Message string `json:"message"`
 	Status  int    `json:"status"`
 }
@@ -209,8 +202,8 @@ type InsertLevelResponse struct {
 //--------------------------------------------------------------------------------
 
 type MovePlayerRequest struct {
-	ID        uint `json:"id"`
-	Direction int  `json:"direction"`
+	ID        int32           `json:"id"`
+	Direction model.Direction `json:"direction"`
 }
 
 //--------------------------------------------------------------------------------
@@ -218,7 +211,7 @@ type MovePlayerRequest struct {
 //--------------------------------------------------------------------------------
 
 type MovePlayerResponse struct {
-	Id     uint   `json:"id"`
+	Id     int32  `json:"id"`
 	Level  string `json:"level"`
 	Status int    `json:"status"`
 }

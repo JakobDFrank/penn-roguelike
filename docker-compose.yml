@@ -10,17 +10,17 @@ services:
       - db
     environment:
       - DB_HOST=db
-      - DB_USER=postgres
+      - DB_USER=penn
+      - DB_NAME=penn
       - DB_PASSWORD=superSecretPassword
-      - DB_NAME=pennRoguelikeDb
   db:
     image: postgres:16.2
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: penn
+      POSTGRES_DB: penn
       POSTGRES_PASSWORD: superSecretPassword
-      POSTGRES_DB: pennRoguelikeDb
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

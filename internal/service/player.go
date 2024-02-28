@@ -1,12 +1,10 @@
 package service
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -14,16 +12,26 @@ import (
 // PlayerService
 //--------------------------------------------------------------------------------
 
+const (
+	_startingHitpoints = 4
+)
+
 // PlayerService handles player management.
 type PlayerService struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	levelRepo  model.LevelRepository
+	playerRepo model.PlayerRepository
+	logger     *zap.Logger
 }
 
 // NewPlayerService creates a new instance of PlayerService.
-func NewPlayerService(logger *zap.Logger, db *gorm.DB) (*PlayerService, error) {
-	if db == nil {
-		return nil, &apperr.NilArgumentError{Message: "db"}
+func NewPlayerService(logger *zap.Logger, levelRepo model.LevelRepository, playerRepo model.PlayerRepository) (*PlayerService, error) {
+
+	if levelRepo == nil {
+		return nil, &apperr.NilArgumentError{Message: "levelRepo"}
+	}
+
+	if playerRepo == nil {
+		return nil, &apperr.NilArgumentError{Message: "playerRepo"}
 	}
 
 	if logger == nil {
@@ -31,8 +39,9 @@ func NewPlayerService(logger *zap.Logger, db *gorm.DB) (*PlayerService, error) {
 	}
 
 	pc := &PlayerService{
-		db:     db,
-		logger: logger,
+		levelRepo:  levelRepo,
+		playerRepo: playerRepo,
+		logger:     logger,
 	}
 
 	return pc, nil
@@ -40,7 +49,7 @@ func NewPlayerService(logger *zap.Logger, db *gorm.DB) (*PlayerService, error) {
 
 // MovePlayer will attempt to move a player on a map in a given direction.
 // It returns the new game state or an error.
-func (pc *PlayerService) MovePlayer(id uint, dir model.Direction) (model.GameMap, error) {
+func (pc *PlayerService) MovePlayer(id int32, dir model.Direction) (*model.Level, error) {
 
 	lvl, err := pc.movePlayer(id, dir)
 
@@ -48,40 +57,41 @@ func (pc *PlayerService) MovePlayer(id uint, dir model.Direction) (model.GameMap
 		return nil, err
 	}
 
-	return lvl.Map, nil
+	return lvl, nil
 }
 
-func (pc *PlayerService) movePlayer(id uint, dir model.Direction) (*model.Level, error) {
+func (pc *PlayerService) movePlayer(id int32, dir model.Direction) (*model.Level, error) {
 
 	pc.logger.Debug("move_player", zap.String("dir", dir.String()))
 
-	var lvl model.Level
+	lvl, err := pc.levelRepo.GetFirst(id)
 
-	if err := pc.db.First(&lvl, id).Error; err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	tx := pc.db.Begin()
+	cells := make([][]model.Cell, 0)
+	if err := json.Unmarshal(lvl.Map, &cells); err != nil {
+		return nil, err
+	}
 
-	start := time.Now()
-	pc.logger.Debug("start_transaction", zap.Time("start_time", start))
+	tx, err := pc.playerRepo.Begin()
 
-	var playr model.Player
+	if err != nil {
+		return nil, err
+	}
 
-	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("level_id = ?", id).First(&playr).Error; err != nil {
+	playr, err := pc.playerRepo.GetPlayerByLevelIDAndLockWithTx(tx, lvl.ID)
+
+	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	oldRowIdx := playr.RowIdx
-	oldColIdx := playr.ColIdx
+	start := time.Now()
+	pc.logger.Debug("start_lock", zap.Time("start_time", start))
 
-	// modify local, initial map to reflect current state
-	lvl.Map[lvl.RowStartIdx][lvl.ColStartIdx] = model.CellOpen
-	lvl.Map[oldRowIdx][oldColIdx] = model.CellPlayer
-	fmt.Printf("before: \n%s\n", lvl.Map.String())
-
-	moved, err := pc.tryMove(&lvl, &playr, dir)
+	moved, err := pc.tryMove(cells, &playr, dir)
 
 	if err != nil {
 		tx.Rollback()
@@ -89,48 +99,57 @@ func (pc *PlayerService) movePlayer(id uint, dir model.Direction) (*model.Level,
 	}
 
 	if moved {
-		if err := tx.Save(&playr).Error; err != nil {
+		if err := pc.playerRepo.UpdatePlayer(tx, model.UpdatePlayerParams{
+			LevelID:   playr.LevelID,
+			Hitpoints: playr.Hitpoints,
+			CurrX:     playr.CurrX,
+			CurrY:     playr.CurrY,
+		}); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	end := time.Now()
+	pc.logger.Debug("ending_lock", zap.Time("end_time", end), zap.Duration("elapsed", end.Sub(start)))
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	end := time.Now()
-	pc.logger.Debug("end_transaction", zap.Time("end_time", end), zap.Duration("elapsed", end.Sub(start)))
+	data, err := SerializeCellsWithPlayer(cells, &playr, pc.logger)
 
-	// modify local map to reflect player movement
-	lvl.Map[oldRowIdx][oldColIdx] = model.CellOpen
-	lvl.Map[playr.RowIdx][playr.ColIdx] = model.CellPlayer
+	if err != nil {
+		return nil, err
+	}
 
-	fmt.Printf("after: \n%s\n", lvl.Map.String())
+	if err := lvl.Map.UnmarshalJSON(data); err != nil {
+		return nil, err
+	}
 
 	return &lvl, nil
 }
 
-func (pc *PlayerService) tryMove(lvl *model.Level, p *model.Player, dir model.Direction) (bool, error) {
+func (pc *PlayerService) tryMove(lvl [][]model.Cell, p *model.Player, dir model.Direction) (bool, error) {
 	switch dir {
 	case model.Left:
-		if p.ColIdx > 0 {
-			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx, p.ColIdx-1)
+		if p.CurrX > 0 {
+			moved := pc.handlePlayerMoveAttempt(lvl, p, p.CurrY, p.CurrX-1)
 			return moved, nil
 		}
 	case model.Right:
-		if p.ColIdx < len(lvl.Map[0])-1 {
-			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx, p.ColIdx+1)
+		if int(p.CurrX) < len(lvl[0])-1 {
+			moved := pc.handlePlayerMoveAttempt(lvl, p, p.CurrY, p.CurrX+1)
 			return moved, nil
 		}
 	case model.Up:
-		if p.RowIdx > 0 {
-			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx-1, p.ColIdx)
+		if p.CurrY > 0 {
+			moved := pc.handlePlayerMoveAttempt(lvl, p, p.CurrY-1, p.CurrX)
 			return moved, nil
 		}
 	case model.Down:
-		if p.RowIdx < len(lvl.Map)-1 {
-			moved := pc.handlePlayerMoveAttempt(lvl, p, p.RowIdx+1, p.ColIdx)
+		if int(p.CurrY) < len(lvl)-1 {
+			moved := pc.handlePlayerMoveAttempt(lvl, p, p.CurrY+1, p.CurrX)
 			return moved, nil
 		}
 	default:
@@ -141,30 +160,30 @@ func (pc *PlayerService) tryMove(lvl *model.Level, p *model.Player, dir model.Di
 	return false, nil
 }
 
-func (pc *PlayerService) handlePlayerMoveAttempt(lvl *model.Level, p *model.Player, row, col int) bool {
-	switch lvl.Map[row][col] {
+func (pc *PlayerService) handlePlayerMoveAttempt(lvl [][]model.Cell, p *model.Player, row, col int32) bool {
+	switch lvl[row][col] {
 	case model.CellWall:
 		pc.logger.Info("player_blocked_by_wall")
 		return false
 	case model.CellPit:
 		p.Hitpoints -= 1
-		pc.logger.Info("player_fell_into_pit", zap.Int("hp", p.Hitpoints))
+		pc.logger.Info("player_fell_into_pit", zap.Int32("hp", p.Hitpoints))
 	case model.CellArrow:
 		p.Hitpoints -= 2
-		pc.logger.Info("player_hit_by_arrows", zap.Int("hp", p.Hitpoints))
+		pc.logger.Info("player_hit_by_arrows", zap.Int32("hp", p.Hitpoints))
 	case model.CellOpen, model.CellPlayer:
-		pc.logger.Info("player_moved", zap.Int("row", row), zap.Int("col", col))
+		pc.logger.Info("player_moved", zap.Int32("row", row), zap.Int32("col", col))
 	}
 
 	if p.Hitpoints > 0 {
-		p.RowIdx = row
-		p.ColIdx = col
+		p.CurrY = row
+		p.CurrX = col
 	} else {
-		p.RowIdx = lvl.RowStartIdx
-		p.ColIdx = lvl.ColStartIdx
-		p.ResetHitpoints()
+		p.CurrY = p.StartY
+		p.CurrX = p.StartX
+		p.Hitpoints = _startingHitpoints
 
-		pc.logger.Info("player_died", zap.Int("row", p.RowIdx), zap.Int("col", p.ColIdx))
+		pc.logger.Info("player_died", zap.Int32("x", p.CurrX), zap.Int32("y", p.CurrY))
 	}
 
 	return true

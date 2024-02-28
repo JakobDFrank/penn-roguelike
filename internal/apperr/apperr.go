@@ -44,6 +44,15 @@ func (e *UnimplementedError) Error() string {
 	return fmt.Sprintf("unimplemented: %s", e.Message)
 }
 
+// InvalidOperationError indicates a method call is invalid.
+type InvalidOperationError struct {
+	Message string
+}
+
+func (e *InvalidOperationError) Error() string {
+	return fmt.Sprintf("invalid operatoin: %s", e.Message)
+}
+
 // ErrInvalidCast indicates a type cast failure.
 var ErrInvalidCast = errors.New("type cast failure")
 
