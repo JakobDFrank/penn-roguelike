@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/api/rpc"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -64,7 +64,7 @@ func (gd *GrpcDriver) CreateLevel(_ context.Context, req *rpc.CreateLevelRequest
 		row := make([]model.Cell, 0)
 
 		for _, gCell := range gRows.Cells {
-			cell, err := model.NewCell(int(gCell))
+			cell, err := model.NewCell(gCell)
 
 			if err != nil {
 				return nil, err
@@ -104,7 +104,7 @@ func (gd *GrpcDriver) MovePlayer(_ context.Context, req *rpc.MovePlayerRequest) 
 		return nil, &apperr.UnimplementedError{Message: "[MovePlayer] Direction"}
 	}
 
-	gameMap, err := gd.playerService.MovePlayer(uint(req.Id), dir)
+	gameMap, err := gd.playerService.MovePlayer(req.Id, dir)
 
 	if err != nil {
 		return nil, err

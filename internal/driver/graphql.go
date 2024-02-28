@@ -8,7 +8,7 @@ import (
 	"github.com/JakobDFrank/penn-roguelike/api/graphql/graph"
 	gqlmodel "github.com/JakobDFrank/penn-roguelike/api/graphql/graph/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
 	"go.uber.org/zap"
 	"net/http"
@@ -69,7 +69,7 @@ func (gd *GraphQLDriver) InsertLevel(ctx context.Context, level [][]int) (string
 		row := make([]model.Cell, 0)
 
 		for _, gCell := range gRows {
-			cell, err := model.NewCell(gCell)
+			cell, err := model.NewCell(int32(gCell))
 
 			if err != nil {
 				return "", err
@@ -107,13 +107,13 @@ func (gd *GraphQLDriver) MovePlayer(ctx context.Context, id string, dir gqlmodel
 		return "", &apperr.UnimplementedError{Message: "[MovePlayer] Direction"}
 	}
 
-	mapId, err := strconv.ParseUint(id, 10, 64)
+	mapId, err := strconv.ParseInt(id, 10, 32)
 
 	if err != nil {
 		return "", err
 	}
 
-	gameMap, err := gd.playerService.MovePlayer(uint(mapId), d)
+	gameMap, err := gd.playerService.MovePlayer(int32(mapId), d)
 
 	if err != nil {
 		return "", err

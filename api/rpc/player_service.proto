@@ -7,7 +7,7 @@ service PlayerService {
 }
 
 message MovePlayerRequest {
-  uint32 Id = 1;
+  int32 Id = 1;
   Direction Direction = 2;
 }
 
