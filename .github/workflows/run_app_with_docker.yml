@@ -1,0 +1,19 @@
+name: Run App with Docker
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  run-docker-compose:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check out the repository code
+      uses: actions/checkout@v4
+
+    - name: Build and Run App with Docker
+      run: docker-compose up -d --build
+
