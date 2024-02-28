@@ -62,7 +62,7 @@ HTTP example:
 ```shell
 curl -X POST http://localhost:8080/level/submit \
 -H "Content-Type: application/json" \
--d '[[0,0,0,0,2],[0,4,0,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]'
+-d '[[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]'
 ```
 
 Constraints:
@@ -89,6 +89,13 @@ HTTP example:
 curl -X POST http://localhost:8080/player/move \
      -H "Content-Type: application/json" \
      -d '{"id":1,"direction":0}'
+```
+
+Alternatively, with HTTP, you may use "left", "right", "up", or "down".
+```shell
+curl -X POST http://localhost:8080/player/move \
+     -H "Content-Type: application/json" \
+     -d '{"id":1,"direction":"left"}'
 ```
 
 ## Directory Structure

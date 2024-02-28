@@ -85,10 +85,10 @@ func (ls *LevelService) createMap(cells [][]model.Cell, rowStartIdx, colStartIdx
 
 	playr, err := ls.playerRepo.CreatePlayerWithTx(tx, model.CreatePlayerParams{
 		LevelID:   lvl.ID,
-		StartX:    rowStartIdx,
-		StartY:    colStartIdx,
-		CurrX:     rowStartIdx,
-		CurrY:     colStartIdx,
+		StartX:    colStartIdx,
+		StartY:    rowStartIdx,
+		CurrX:     colStartIdx,
+		CurrY:     rowStartIdx,
 		Hitpoints: _startingHitpoints,
 	})
 
