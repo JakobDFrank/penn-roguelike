@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"go.uber.org/zap"
@@ -20,11 +21,21 @@ const (
 type PlayerService struct {
 	levelRepo  model.LevelRepository
 	playerRepo model.PlayerRepository
-	logger     *zap.Logger
+
+	logger *zap.Logger
+	obs    analytics.Collector
 }
 
 // NewPlayerService creates a new instance of PlayerService.
-func NewPlayerService(logger *zap.Logger, levelRepo model.LevelRepository, playerRepo model.PlayerRepository) (*PlayerService, error) {
+func NewPlayerService(logger *zap.Logger, obs analytics.Collector, levelRepo model.LevelRepository, playerRepo model.PlayerRepository) (*PlayerService, error) {
+
+	if logger == nil {
+		return nil, &apperr.NilArgumentError{Message: "logger"}
+	}
+
+	if obs == nil {
+		return nil, &apperr.NilArgumentError{Message: "obs"}
+	}
 
 	if levelRepo == nil {
 		return nil, &apperr.NilArgumentError{Message: "levelRepo"}
@@ -34,14 +45,11 @@ func NewPlayerService(logger *zap.Logger, levelRepo model.LevelRepository, playe
 		return nil, &apperr.NilArgumentError{Message: "playerRepo"}
 	}
 
-	if logger == nil {
-		return nil, &apperr.NilArgumentError{Message: "logger"}
-	}
-
 	pc := &PlayerService{
 		levelRepo:  levelRepo,
 		playerRepo: playerRepo,
 		logger:     logger,
+		obs:        obs,
 	}
 
 	return pc, nil

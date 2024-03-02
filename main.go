@@ -6,6 +6,7 @@ import (
 	"embed"
 	"flag"
 	"fmt"
+	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/driver"
@@ -194,29 +195,34 @@ func handleSchemaMigration(db *sql.DB, dbName string) error {
 	return nil
 }
 
-// JF - note: we could create interfaces here for zap.Logger and gorm.DB to abide by dependency inversion
-// however, it will increase complexity. trade-offs.
-func setupHandlers(svc driver.DriverKind, logger *zap.Logger, db *sql.DB) (driver.Driver, error) {
+func setupHandlers(drivr driver.DriverKind, logger *zap.Logger, db *sql.DB) (driver.Driver, error) {
 
-	levelRepo, err := model.NewLevelRepository(db)
-
-	if err != nil {
-		return nil, err
-	}
-
-	playerRepo, err := model.NewPlayerRepository(db)
+	logger.Info("starting_analytics")
+	obs, err := analytics.NewPrometheus()
 
 	if err != nil {
 		return nil, err
 	}
 
-	lc, err := service.NewLevelService(logger, levelRepo, playerRepo)
+	levelRepo, err := model.NewSqlcLevelRepository(db, obs)
 
 	if err != nil {
 		return nil, err
 	}
 
-	pc, err := service.NewPlayerService(logger, levelRepo, playerRepo)
+	playerRepo, err := model.NewSqlcPlayerRepository(db, obs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lc, err := service.NewLevelService(logger, obs, levelRepo, playerRepo)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pc, err := service.NewPlayerService(logger, obs, levelRepo, playerRepo)
 
 	if err != nil {
 		return nil, err
@@ -224,13 +230,13 @@ func setupHandlers(svc driver.DriverKind, logger *zap.Logger, db *sql.DB) (drive
 
 	var drvr driver.Driver
 
-	switch svc {
+	switch drivr {
 	case driver.Http:
-		drvr, err = driver.NewWebDriver(lc, pc, logger)
+		drvr, err = driver.NewWebDriver(logger, obs, lc, pc)
 	case driver.Grpc:
-		drvr, err = driver.NewGrpcDriver(lc, pc, logger)
+		drvr, err = driver.NewGrpcDriver(logger, obs, lc, pc)
 	case driver.GraphQL:
-		drvr, err = driver.NewGraphQLDriver(lc, pc, logger)
+		drvr, err = driver.NewGraphQLDriver(logger, obs, lc, pc)
 	default:
 		return nil, &apperr.UnimplementedError{Message: "service"}
 	}

@@ -38,7 +38,7 @@ sudo systemctl start docker
 
 1. Clone the repository.
 
-2. Open a terminal and navigate to the root directory. 
+2. Open a terminal and navigate to penn-roguelike/deploy. 
    
 3. (Optional) To modify the server type, use docker-compose build --build-arg API=TYPE, replacing TYPE with http (default), grpc, or graphql. This changes the server launched.
 
@@ -97,6 +97,21 @@ curl -X POST http://localhost:8080/player/move \
      -H "Content-Type: application/json" \
      -d '{"id":1,"direction":"left"}'
 ```
+
+## Metrics
+You can view Prometheus metrics by visiting: <br>
+http://localhost:2112/metrics
+
+You can access Prometheus's built-in expression browser by visiting: <br>
+http://localhost:9090/graph
+
+## Grafana
+To access Grafana dashboards, visit: http://localhost:3000/ and use the following credentials:
+- Username: admin
+- Password: grafana
+
+## GraphQL
+If running with GraphQL, visit http://localhost:9101/ to access GraphQL Playground.
 
 ## Directory Structure
 

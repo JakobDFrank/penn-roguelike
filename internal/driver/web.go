@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
@@ -26,10 +27,19 @@ type WebDriver struct {
 	levelService  *service.LevelService
 	playerService *service.PlayerService
 	logger        *zap.Logger
+	obs           analytics.Collector
 }
 
 // NewWebDriver creates a new instance of WebDriver.
-func NewWebDriver(levelService *service.LevelService, playerService *service.PlayerService, logger *zap.Logger) (*WebDriver, error) {
+func NewWebDriver(logger *zap.Logger, obs analytics.Collector, levelService *service.LevelService, playerService *service.PlayerService) (*WebDriver, error) {
+
+	if logger == nil {
+		return nil, &apperr.NilArgumentError{Message: "logger"}
+	}
+
+	if obs == nil {
+		return nil, &apperr.NilArgumentError{Message: "obs"}
+	}
 
 	if levelService == nil {
 		return nil, &apperr.NilArgumentError{Message: "levelService"}
@@ -39,18 +49,12 @@ func NewWebDriver(levelService *service.LevelService, playerService *service.Pla
 		return nil, &apperr.NilArgumentError{Message: "playerService"}
 	}
 
-	if logger == nil {
-		return nil, &apperr.NilArgumentError{Message: "logger"}
-	}
-
 	wd := &WebDriver{
 		levelService:  levelService,
 		playerService: playerService,
 		logger:        logger,
+		obs:           obs,
 	}
-
-	http.HandleFunc("/level/submit", wd.SubmitLevel)
-	http.HandleFunc("/player/move", wd.MovePlayer)
 
 	return wd, nil
 }
@@ -138,7 +142,14 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 func (wd *WebDriver) Serve(onExitCtx context.Context) error {
 	wd.logger.Info("http_server_start_listening")
 
-	return httpGracefulServe(_httpPort, onExitCtx, wd.logger)
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/level/submit", wd.SubmitLevel)
+	mux.HandleFunc("/player/move", wd.MovePlayer)
+
+	handler := analyticsMiddleware(wd.obs, mux)
+
+	return httpGracefulServe(_httpPort, handler, onExitCtx, wd.logger)
 }
 
 func deserializePostRequest(w http.ResponseWriter, r *http.Request, value any) error {

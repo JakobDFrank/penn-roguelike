@@ -4,8 +4,10 @@ package driver
 import (
 	"context"
 	"fmt"
+	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -29,9 +31,9 @@ var DriverNameToEnum = map[string]DriverKind{
 	"graphql": GraphQL,
 }
 
-func httpGracefulServe(port int, onExitCtx context.Context, logger *zap.Logger) error {
+func httpGracefulServe(port int, mux http.Handler, onExitCtx context.Context, logger *zap.Logger) error {
 	addr := fmt.Sprintf(":%d", port)
-	server := &http.Server{Addr: addr}
+	server := &http.Server{Addr: addr, Handler: mux}
 
 	registerHttpGracefulShutdownHandler(server, onExitCtx, logger)
 
@@ -58,4 +60,20 @@ func registerHttpGracefulShutdownHandler(server *http.Server, onExitCtx context.
 			logger.Warn("server_exit")
 		}
 	}()
+}
+
+// analyticsMiddleware wraps a HTTP handler to measure response times
+func analyticsMiddleware(obs analytics.Collector, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method := r.Method
+		path := r.URL.Path
+
+		path = strings.ReplaceAll(path, "/", ":")
+		metric := fmt.Sprintf("http_response_duration_%s_%s", method, path)
+
+		defer analytics.MeasureDuration(obs, metric)()
+
+		// Call the next handler
+		next.ServeHTTP(w, r)
+	})
 }
