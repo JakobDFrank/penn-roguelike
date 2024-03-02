@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"go.uber.org/zap"
@@ -19,10 +20,20 @@ type LevelService struct {
 	playerRepo model.PlayerRepository
 
 	logger *zap.Logger
+	obs    analytics.Collector
 }
 
 // NewLevelService creates a new instance of LevelService.
-func NewLevelService(logger *zap.Logger, levelRepo model.LevelRepository, playerRepo model.PlayerRepository) (*LevelService, error) {
+func NewLevelService(logger *zap.Logger, obs analytics.Collector, levelRepo model.LevelRepository, playerRepo model.PlayerRepository) (*LevelService, error) {
+
+	if logger == nil {
+		return nil, &apperr.NilArgumentError{Message: "logger"}
+	}
+
+	if obs == nil {
+		return nil, &apperr.NilArgumentError{Message: "obs"}
+	}
+
 	if levelRepo == nil {
 		return nil, &apperr.NilArgumentError{Message: "levelRepo"}
 	}
@@ -31,14 +42,11 @@ func NewLevelService(logger *zap.Logger, levelRepo model.LevelRepository, player
 		return nil, &apperr.NilArgumentError{Message: "playerRepo"}
 	}
 
-	if logger == nil {
-		return nil, &apperr.NilArgumentError{Message: "logger"}
-	}
-
 	lc := &LevelService{
 		levelRepo:  levelRepo,
 		playerRepo: playerRepo,
 		logger:     logger,
+		obs:        obs,
 	}
 
 	return lc, nil
@@ -251,5 +259,7 @@ func PrintMap(lvl *model.Level, player *model.Player, logger *zap.Logger) {
 		return
 	}
 
-	SerializeCellsWithPlayer(cells, player, logger)
+	if _, err := SerializeCellsWithPlayer(cells, player, logger); err != nil {
+		logger.Error("print_map", zap.Error(err))
+	}
 }

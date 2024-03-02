@@ -7,6 +7,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/JakobDFrank/penn-roguelike/api/graphql/graph"
 	gqlmodel "github.com/JakobDFrank/penn-roguelike/api/graphql/graph/model"
+	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
@@ -20,7 +21,7 @@ import (
 //--------------------------------------------------------------------------------
 
 const (
-	_graphQLPort     = 9091
+	_graphQLPort     = 9101
 	_graphQLEndpoint = "/query"
 )
 
@@ -29,11 +30,20 @@ type GraphQLDriver struct {
 	levelService  *service.LevelService
 	playerService *service.PlayerService
 	logger        *zap.Logger
+	obs           analytics.Collector
 	graph.ResolverRoot
 }
 
 // NewGraphQLDriver creates a new instance of GraphQLDriver.
-func NewGraphQLDriver(levelService *service.LevelService, playerService *service.PlayerService, logger *zap.Logger) (*GraphQLDriver, error) {
+func NewGraphQLDriver(logger *zap.Logger, obs analytics.Collector, levelService *service.LevelService, playerService *service.PlayerService) (*GraphQLDriver, error) {
+
+	if logger == nil {
+		return nil, &apperr.NilArgumentError{Message: "logger"}
+	}
+
+	if obs == nil {
+		return nil, &apperr.NilArgumentError{Message: "obs"}
+	}
 
 	if levelService == nil {
 		return nil, &apperr.NilArgumentError{Message: "levelService"}
@@ -43,20 +53,12 @@ func NewGraphQLDriver(levelService *service.LevelService, playerService *service
 		return nil, &apperr.NilArgumentError{Message: "playerService"}
 	}
 
-	if logger == nil {
-		return nil, &apperr.NilArgumentError{Message: "logger"}
-	}
-
 	gd := &GraphQLDriver{
 		levelService:  levelService,
 		playerService: playerService,
 		logger:        logger,
+		obs:           obs,
 	}
-
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: gd}))
-
-	http.Handle("/", playground.Handler("GraphQL playground", _graphQLEndpoint))
-	http.Handle(_graphQLEndpoint, srv)
 
 	return gd, nil
 }
@@ -131,7 +133,16 @@ func (gd *GraphQLDriver) MovePlayer(ctx context.Context, id string, dir gqlmodel
 func (gd *GraphQLDriver) Serve(onExitCtx context.Context) error {
 	gd.logger.Info("graphql_server_start_listening")
 
-	return httpGracefulServe(_graphQLPort, onExitCtx, gd.logger)
+	mux := http.NewServeMux()
+
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: gd}))
+
+	mux.Handle("/", playground.Handler("GraphQL playground", _graphQLEndpoint))
+	mux.Handle(_graphQLEndpoint, srv)
+
+	handler := analyticsMiddleware(gd.obs, mux)
+
+	return httpGracefulServe(_graphQLPort, handler, onExitCtx, gd.logger)
 }
 
 func (gd *GraphQLDriver) Mutation() graph.MutationResolver {

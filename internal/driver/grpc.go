@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/api/rpc"
+	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
 	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
@@ -19,7 +20,7 @@ import (
 //--------------------------------------------------------------------------------
 
 const (
-	_grpcPort = 9090
+	_grpcPort = 9100
 )
 
 // GrpcDriver handles gRPC calls.
@@ -31,10 +32,20 @@ type GrpcDriver struct {
 	rpc.UnimplementedPlayerServiceServer
 
 	logger *zap.Logger
+	obs    analytics.Collector
 }
 
 // NewGrpcDriver creates a new instance of GrpcDriver.
-func NewGrpcDriver(levelService *service.LevelService, playerService *service.PlayerService, logger *zap.Logger) (*GrpcDriver, error) {
+func NewGrpcDriver(logger *zap.Logger, obs analytics.Collector, levelService *service.LevelService, playerService *service.PlayerService) (*GrpcDriver, error) {
+
+	if logger == nil {
+		return nil, &apperr.NilArgumentError{Message: "logger"}
+	}
+
+	if obs == nil {
+		return nil, &apperr.NilArgumentError{Message: "obs"}
+	}
+
 	if levelService == nil {
 		return nil, &apperr.NilArgumentError{Message: "levelService"}
 	}
@@ -43,14 +54,11 @@ func NewGrpcDriver(levelService *service.LevelService, playerService *service.Pl
 		return nil, &apperr.NilArgumentError{Message: "playerService"}
 	}
 
-	if logger == nil {
-		return nil, &apperr.NilArgumentError{Message: "logger"}
-	}
-
 	gd := &GrpcDriver{
 		levelService:  levelService,
 		playerService: playerService,
 		logger:        logger,
+		obs:           obs,
 	}
 
 	return gd, nil
