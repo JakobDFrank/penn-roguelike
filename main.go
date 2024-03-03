@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
+	"github.com/JakobDFrank/penn-roguelike/internal/database/cache"
 	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
 	"github.com/JakobDFrank/penn-roguelike/internal/driver"
 	"github.com/JakobDFrank/penn-roguelike/internal/service"
@@ -204,7 +205,13 @@ func setupHandlers(drivr driver.DriverKind, logger *zap.Logger, db *sql.DB) (dri
 		return nil, err
 	}
 
-	levelRepo, err := model.NewSqlcLevelRepository(db, obs)
+	cache, err := cache.NewRedisCache()
+
+	if err != nil {
+		return nil, err
+	}
+
+	levelRepo, err := model.NewSqlcLevelRepository(db, logger, obs, cache)
 
 	if err != nil {
 		return nil, err

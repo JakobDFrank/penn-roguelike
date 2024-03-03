@@ -6,6 +6,14 @@ import (
 	"encoding/json"
 	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
 	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
+	"github.com/JakobDFrank/penn-roguelike/internal/database/cache"
+	"go.uber.org/zap"
+	"strconv"
+	"time"
+)
+
+const (
+	_expirationTime = time.Minute * 10
 )
 
 //--------------------------------------------------------------------------------
@@ -15,11 +23,13 @@ import (
 type sqlcLevelRepository struct {
 	db      *sql.DB
 	queries *Queries
+	cache   cache.Cacher
 	obs     analytics.Collector
+	logger  *zap.Logger
 }
 
 // NewSqlcLevelRepository returns a SQLC implementation of LevelRepository.
-func NewSqlcLevelRepository(db *sql.DB, obs analytics.Collector) (LevelRepository, error) {
+func NewSqlcLevelRepository(db *sql.DB, logger *zap.Logger, obs analytics.Collector, cache cache.Cacher) (LevelRepository, error) {
 
 	if db == nil {
 		return nil, &apperr.NilArgumentError{Message: "db"}
@@ -29,11 +39,21 @@ func NewSqlcLevelRepository(db *sql.DB, obs analytics.Collector) (LevelRepositor
 		return nil, &apperr.NilArgumentError{Message: "obs"}
 	}
 
+	if cache == nil {
+		return nil, &apperr.NilArgumentError{Message: "cache"}
+	}
+
+	if logger == nil {
+		return nil, &apperr.NilArgumentError{Message: "logger"}
+	}
+
 	queries := New(db)
 	lr := sqlcLevelRepository{
 		db:      db,
 		queries: queries,
 		obs:     obs,
+		cache:   cache,
+		logger:  logger,
 	}
 
 	return &lr, nil
@@ -60,7 +80,33 @@ func (lr *sqlcLevelRepository) GetFirst(id int32) (Level, error) {
 
 	defer analytics.MeasureDuration(lr.obs, "GetFirst")()
 
-	return lr.queries.GetLevel(context.Background(), id)
+	ctx := context.Background()
+	key := "level:" + strconv.FormatInt(int64(id), 32)
+
+	// Levels are immutable, so we don't need to worry about locking here
+	lvl, err := cache.GetStruct[Level](lr.cache, ctx, key)
+
+	if err == nil {
+		lr.logger.Info("cache_hit")
+		return lvl, nil
+	}
+
+	lr.logger.Info("cache_miss")
+
+	// cache miss or doesn't exist
+	lev, err := lr.queries.GetLevel(ctx, id)
+
+	if err != nil {
+		return lev, err
+	}
+
+	lr.logger.Info("set_cache", zap.String("key", key))
+	if err := cache.SetStruct(lr.cache, ctx, key, lev, _expirationTime); err != nil {
+		lr.logger.Error("set_cache", zap.Error(err))
+		// dont return err
+	}
+
+	return lev, nil
 }
 
 var _ LevelRepository = (*sqlcLevelRepository)(nil)
