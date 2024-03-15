@@ -4,7 +4,7 @@ services:
     container_name: app
     build:
       context: ..
-      dockerfile: ./deploy/Dockerfile
+      dockerfile: ./server/deploy/Dockerfile
     ports:
       - "8080:8080" # HTTP
       - "9100:9100" # gRPC
