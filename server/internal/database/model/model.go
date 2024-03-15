@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/apperr"
 	"strings"
 )
 

@@ -1,4 +1,4 @@
-# penn-roguelike
+# penn-roguelike server
 
 ---
 
@@ -38,7 +38,7 @@ sudo systemctl start docker
 
 1. Clone the repository.
 
-2. Open a terminal and navigate to penn-roguelike/deploy. 
+2. Open a terminal and navigate to penn-roguelike/server/deploy. 
    
 3. (Optional) To modify the server type, use docker-compose build --build-arg API=TYPE, replacing TYPE with http (default), grpc, or graphql. This changes the server launched.
 
@@ -106,7 +106,7 @@ You can access Prometheus's built-in expression browser by visiting: <br>
 http://localhost:9090/graph
 
 ## Grafana
-To access Grafana dashboards, visit: http://localhost:3000/ and use the following credentials:
+To access Grafana dashboards, visit: http://localhost:3001/ and use the following credentials:
 - Username: admin
 - Password: grafana
 

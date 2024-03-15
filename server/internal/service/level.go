@@ -3,9 +3,9 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
-	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/analytics"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/apperr"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/database/model"
 	"go.uber.org/zap"
 	"strings"
 )

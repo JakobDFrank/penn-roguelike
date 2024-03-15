@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
-	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
-	"github.com/JakobDFrank/penn-roguelike/internal/service"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/analytics"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/apperr"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/database/model"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/service"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -112,9 +112,8 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	js, err := json.Marshal(gameMap)
-
-	if err != nil {
+	level := make([][]int, 0)
+	if err := json.Unmarshal(gameMap.Map, &level); err != nil {
 		wd.handleError(w, err)
 		return
 	}
@@ -122,8 +121,8 @@ func (wd *WebDriver) MovePlayer(w http.ResponseWriter, r *http.Request) {
 	wd.logger.Debug("unmarshal", zap.Any("move_request", moveRequest))
 
 	resp := MovePlayerResponse{
-		Id:     moveRequest.ID,
-		Level:  string(js),
+		Id:     gameMap.ID,
+		Level:  level,
 		Status: http.StatusOK,
 	}
 
@@ -148,6 +147,7 @@ func (wd *WebDriver) Serve(onExitCtx context.Context) error {
 	mux.HandleFunc("/player/move", wd.MovePlayer)
 
 	handler := analyticsMiddleware(wd.obs, mux)
+	handler = corsMiddleware(handler)
 
 	return httpGracefulServe(_httpPort, handler, onExitCtx, wd.logger)
 }
@@ -222,9 +222,9 @@ type MovePlayerRequest struct {
 //--------------------------------------------------------------------------------
 
 type MovePlayerResponse struct {
-	Id     int32  `json:"id"`
-	Level  string `json:"level"`
-	Status int    `json:"status"`
+	Id     int32   `json:"id"`
+	Level  [][]int `json:"level"`
+	Status int     `json:"status"`
 }
 
 type ErrorResponse struct {

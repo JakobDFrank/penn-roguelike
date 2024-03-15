@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/database/model"
 	"testing"
 )
 

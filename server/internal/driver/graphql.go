@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/JakobDFrank/penn-roguelike/api/graphql/graph"
-	gqlmodel "github.com/JakobDFrank/penn-roguelike/api/graphql/graph/model"
-	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
-	"github.com/JakobDFrank/penn-roguelike/internal/apperr"
-	"github.com/JakobDFrank/penn-roguelike/internal/database/model"
-	"github.com/JakobDFrank/penn-roguelike/internal/service"
+	"github.com/JakobDFrank/penn-roguelike/server/api/graphql/graph"
+	gqlmodel "github.com/JakobDFrank/penn-roguelike/server/api/graphql/graph/model"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/analytics"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/apperr"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/database/model"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/service"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
@@ -141,6 +141,7 @@ func (gd *GraphQLDriver) Serve(onExitCtx context.Context) error {
 	mux.Handle(_graphQLEndpoint, srv)
 
 	handler := analyticsMiddleware(gd.obs, mux)
+	handler = corsMiddleware(handler)
 
 	return httpGracefulServe(_graphQLPort, handler, onExitCtx, gd.logger)
 }

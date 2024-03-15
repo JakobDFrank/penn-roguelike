@@ -1,4 +1,4 @@
-module github.com/JakobDFrank/penn-roguelike
+module github.com/JakobDFrank/penn-roguelike/server
 
 go 1.22.0
 

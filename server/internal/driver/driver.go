@@ -4,7 +4,7 @@ package driver
 import (
 	"context"
 	"fmt"
-	"github.com/JakobDFrank/penn-roguelike/internal/analytics"
+	"github.com/JakobDFrank/penn-roguelike/server/internal/analytics"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
@@ -62,7 +62,7 @@ func registerHttpGracefulShutdownHandler(server *http.Server, onExitCtx context.
 	}()
 }
 
-// analyticsMiddleware wraps a HTTP handler to measure response times
+// analyticsMiddleware wraps an HTTP handler to measure response times
 func analyticsMiddleware(obs analytics.Collector, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method := r.Method
@@ -72,6 +72,23 @@ func analyticsMiddleware(obs analytics.Collector, next http.Handler) http.Handle
 		metric := fmt.Sprintf("http_response_duration_%s_%s", method, path)
 
 		defer analytics.MeasureDuration(obs, metric)()
+
+		// Call the next handler
+		next.ServeHTTP(w, r)
+	})
+}
+
+// corsMiddleware adds CORS headers to the response
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 
 		// Call the next handler
 		next.ServeHTTP(w, r)

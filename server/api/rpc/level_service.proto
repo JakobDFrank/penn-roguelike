@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/JakobDFrank/penn-roguelike/api/rpc";
+option go_package = "github.com/JakobDFrank/penn-roguelike/server/api/rpc";
 
 service LevelService {
   rpc CreateLevel(CreateLevelRequest) returns (CreateLevelResponse) {}
