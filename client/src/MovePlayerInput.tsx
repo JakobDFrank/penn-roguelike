@@ -1,5 +1,6 @@
 import React from "react";
 import { ADDRESS, PLAYER_MOVE_ENDPOINT } from "./App";
+import { HistoryLogger } from "./HistoryLogger";
 
 export enum Direction {
   Left,
@@ -17,6 +18,7 @@ export function MovePlayerInput(
   setNums: React.Dispatch<React.SetStateAction<number[][]>>,
   id: number,
   dir: Direction,
+  logger: HistoryLogger,
 ) {
   let num;
 
@@ -42,7 +44,7 @@ export function MovePlayerInput(
     direction: num,
   };
 
-  console.log(req);
+  logger.log(req);
 
   const url = ADDRESS + PLAYER_MOVE_ENDPOINT;
 
@@ -55,15 +57,15 @@ export function MovePlayerInput(
   })
     .then((response) => response.json())
     .then((data) => {
-      console.log(data);
+      logger.log(data);
 
       if (data.level) {
         setNums(data.level);
       } else {
-        console.error("newBoard error");
+        logger.error("newBoard error");
       }
     })
     .catch((err) => {
-      console.log(err.message);
+      logger.log(err.message);
     });
 }

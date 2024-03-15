@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 import { ADDRESS, SUBMIT_LEVEL_ENDPOINT } from "./App";
+import { HistoryLogger } from "./HistoryLogger";
 
 interface SubmitLevelFormProps {
   setBoard: React.Dispatch<React.SetStateAction<number[][]>>;
   setCurrentId: React.Dispatch<React.SetStateAction<number>>;
+  logger: HistoryLogger;
 }
 
 export function SubmitLevelForm({
   setBoard,
   setCurrentId,
+  logger,
 }: SubmitLevelFormProps) {
   const [text, setText] = useState("");
 
@@ -25,7 +28,7 @@ export function SubmitLevelForm({
     try {
       level = JSON.parse(text);
     } catch {
-      console.error("invalid level: " + text);
+      logger.error("invalid level: " + text);
       return;
     }
 
@@ -40,17 +43,17 @@ export function SubmitLevelForm({
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log(data);
+        logger.log(data);
 
         if (data.id) {
           setBoard(level);
           setCurrentId(data.id);
         } else {
-          console.error("newBoard error");
+          logger.error("newBoard error");
         }
       })
       .catch((err) => {
-        console.log(err.message);
+        logger.log(err.message);
       });
   };
 

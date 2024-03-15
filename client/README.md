@@ -18,11 +18,9 @@
 
 3. Open a terminal and navigate to penn-roguelike/client.
 
-4. Run `npm start` to start the React server.
-
-5. In another terminal, run `npm run electron-dev` to start the GUI.
-
-**To do: Make production ready and improve documentation. This is developer only at the moment.**
+4. To run the application:
+   - For Development: Run `npm run electron-dev` to start the application in development mode.
+   - For Compilation: Run `npm run electron:package:linux` to build the app for Linux x86_64. <br>Find the AppImage at penn-roguelike/client/dist/client-0.1.0.AppImage.
 
 ### Submitting a Level
 
