@@ -1,0 +1,63 @@
+version: '3.9'
+services:
+  app:
+    container_name: app
+    build:
+      context: ..
+      dockerfile: ./deploy/Dockerfile
+    ports:
+      - "8080:8080" # HTTP
+      - "9100:9100" # gRPC
+      - "9101:9101" # GraphQL
+      - "2112:2112" # Prometheus
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_USER=penn
+      - DB_NAME=penn
+      - DB_PASSWORD=superSecretPassword
+  db:
+    container_name: db
+    image: postgres:16.2
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: penn
+      POSTGRES_DB: penn
+      POSTGRES_PASSWORD: superSecretPassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+    expose:
+      - 6379
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+    logging:
+      driver: none
+volumes:
+  postgres_data:
+  prom_data:
