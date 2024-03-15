@@ -57,10 +57,13 @@ export function SubmitLevelForm({
   return (
     <form onSubmit={handleSubmit}>
       <label>
-        Load:
-        <input value={text} onChange={handleChange} />
+        <input
+          placeholder=" [[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]"
+          value={text}
+          onChange={handleChange}
+        />
       </label>
-      <button type="submit">Submit</button>
+      <button type="submit">Load</button>
     </form>
   );
 }

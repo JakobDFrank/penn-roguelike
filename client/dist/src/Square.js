@@ -12,5 +12,5 @@ var __assign = (this && this.__assign) || function () {
 import { jsx as _jsx } from "react/jsx-runtime";
 export function Square(_a) {
     var value = _a.value;
-    return _jsx("button", __assign({ className: "square" }, { children: value }));
+    return _jsx("button", __assign({ className: "square" }, { children: value != 0 ? value : "" }));
 }

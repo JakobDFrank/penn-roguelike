@@ -5,5 +5,5 @@ interface SquareProps {
 }
 
 export function Square({ value }: SquareProps) {
-  return <button className="square">{value}</button>;
+  return <button className="square">{value != 0 ? value : ""}</button>;
 }

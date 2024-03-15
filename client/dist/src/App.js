@@ -9,7 +9,7 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState } from "react";
 import "./App.css";
 import { Board } from "./Board";
@@ -43,6 +43,6 @@ function App() {
                 break;
         }
     };
-    return (_jsxs(_Fragment, { children: [_jsx("div", __assign({ onKeyUp: keyUpHandler }, { children: _jsx(Board, { id: id, cells: board }) })), _jsx(SubmitLevelForm, { setBoard: setBoard, setCurrentId: setCurrentId }), "Level ID: ", id, _jsx("br", {}), "Example Level: [[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]"] }));
+    return (_jsxs(_Fragment, { children: [_jsx("div", __assign({ className: "container", onKeyUp: keyUpHandler }, { children: _jsx(Board, { id: id, cells: board }) })), _jsxs("div", __assign({ className: "under-grid" }, { children: [_jsx(SubmitLevelForm, { setBoard: setBoard, setCurrentId: setCurrentId }), "Level ID: ", id, _jsx("br", {}), _jsx("div", __assign({ className: "example-level-container" }, { children: "Example Level: [[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]" }))] }))] }));
 }
 export default App;

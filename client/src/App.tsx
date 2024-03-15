@@ -38,14 +38,18 @@ function App() {
 
   return (
     <>
-      <div onKeyUp={keyUpHandler}>
+      <div className="container" onKeyUp={keyUpHandler}>
         <Board id={id} cells={board} />
       </div>
-      <SubmitLevelForm setBoard={setBoard} setCurrentId={setCurrentId} />
-      Level ID: {id}
-      <br></br>
-      Example Level:
-      [[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]
+      <div className="under-grid">
+        <SubmitLevelForm setBoard={setBoard} setCurrentId={setCurrentId} />
+        Level ID: {id}
+        <br></br>
+        <div className="example-level-container">
+          Example Level:
+          [[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]
+        </div>
+      </div>
     </>
   );
 }

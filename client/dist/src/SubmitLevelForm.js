@@ -52,5 +52,5 @@ export function SubmitLevelForm(_a) {
             console.log(err.message);
         });
     };
-    return (_jsxs("form", __assign({ onSubmit: handleSubmit }, { children: [_jsxs("label", { children: ["Load:", _jsx("input", { value: text, onChange: handleChange })] }), _jsx("button", __assign({ type: "submit" }, { children: "Submit" }))] })));
+    return (_jsxs("form", __assign({ onSubmit: handleSubmit }, { children: [_jsx("label", { children: _jsx("input", { placeholder: " [[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]", value: text, onChange: handleChange }) }), _jsx("button", __assign({ type: "submit" }, { children: "Load" }))] })));
 }
