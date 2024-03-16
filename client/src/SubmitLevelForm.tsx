@@ -15,12 +15,12 @@ export function SubmitLevelForm({
 }: SubmitLevelFormProps) {
   const [text, setText] = useState("");
 
-  const handleChange = (event: any) => {
+  function handleChange(event: any) {
     const text = event.target.value;
     setText(text);
-  };
+  }
 
-  const handleSubmit = (event: any) => {
+  function handleSubmit(event: any) {
     event.preventDefault();
 
     let level: number[][];
@@ -55,18 +55,24 @@ export function SubmitLevelForm({
       .catch((err) => {
         logger.log(err.message);
       });
-  };
+  }
 
   return (
     <form onSubmit={handleSubmit}>
       <label>
         <input
+          className="mr-1 p-2.5 border border-gray-300 rounded w-1/2 text-center"
           placeholder=" [[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]"
           value={text}
           onChange={handleChange}
         />
       </label>
-      <button type="submit">Load</button>
+      <button
+        type="submit"
+        className="p-2.5 border border-transparent rounded bg-green-500 hover:bg-green-600 cursor-pointer"
+      >
+        Load
+      </button>
     </form>
   );
 }

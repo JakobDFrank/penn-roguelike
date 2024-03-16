@@ -6,6 +6,8 @@ interface ConsoleMessagesProp {
 }
 
 export function ConsoleMessages({ messages }: ConsoleMessagesProp) {
+  const logMessage = "p-1 mx-5 border-b border-gray-200";
+
   return (
     <div>
       {messages.map((msg, index) => {
@@ -20,9 +22,9 @@ export function ConsoleMessages({ messages }: ConsoleMessagesProp) {
         let className: string;
 
         if (msg.type === ErrorKind.Error) {
-          className = "log-message log-error";
+          className = `${logMessage} text-red-600`;
         } else {
-          className = "log-message log-info";
+          className = `${logMessage} text-blue-600`;
         }
 
         return (

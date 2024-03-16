@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import "./App.css";
 import { Board } from "./Board";
 import { SubmitLevelForm } from "./SubmitLevelForm";
 import { Direction, MovePlayerInput } from "./MovePlayerInput";
@@ -41,7 +40,7 @@ function App() {
     };
   }, []); // empty array ensures this effect runs only once
 
-  const keyUpHandler = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  function keyUpHandler(event: React.KeyboardEvent<HTMLInputElement>) {
     event.preventDefault();
 
     switch (event.code) {
@@ -62,25 +61,33 @@ function App() {
         MovePlayerInput(setBoard, id, Direction.Down, logger);
         break;
     }
-  };
+  }
 
   return (
     <>
-      <div className="container" onKeyUp={keyUpHandler}>
-        <Board id={id} cells={board} />
-      </div>
-      <div className="under-grid">
-        <SubmitLevelForm
-          setBoard={setBoard}
-          setCurrentId={setCurrentId}
-          logger={logger}
-        />
-        Level ID: {id}
-        <br></br>
-        <div className="log-container">
-          <ConsoleMessages messages={messages} />
+      <div className="flex flex-col justify-between text-center w-full h-full">
+        {/*content*/}
+        <div className="flex-1">
+          <div
+            className="py-20 m-5 items-center border border-gray-300 shadow-md rounded-lg box-border hover:bg-gray-50"
+            onKeyUp={keyUpHandler}
+          >
+            <Board id={id} cells={board} />
+          </div>
+
+          <SubmitLevelForm
+            setBoard={setBoard}
+            setCurrentId={setCurrentId}
+            logger={logger}
+          />
+          <div className="m-5 font-semibold">Level ID: {id}</div>
+          <div className="font-mono text-sm bg-gray-100 border border-gray-200 rounded p-2.5 m-5 text-left">
+            <ConsoleMessages messages={messages} />
+          </div>
         </div>
-        <div className="example-level-container">
+
+        {/*footer*/}
+        <div className="italic">
           Example Level:
           [[0,0,0,0,2],[0,0,4,0,2],[0,1,2,0,0],[0,1,1,3,0],[0,0,0,0,0]]
         </div>

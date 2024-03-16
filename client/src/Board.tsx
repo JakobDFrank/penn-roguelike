@@ -19,7 +19,7 @@ export function Board({ id, cells }: BoardProps) {
     });
 
     return (
-      <div key={`${id}-row-${idx}`} className="board-row">
+      <div key={`${id}-row-${idx}`} className="flex justify-center">
         {rowHtml}
       </div>
     );
